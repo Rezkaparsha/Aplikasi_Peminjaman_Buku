@@ -256,7 +256,7 @@ http://localhost/Aplikasi_Peminjaman_Buku
 
 | Keterangan | Data |
 |------------|------------|
-| Username / NIS / NIP | 0123456789 |
+| Username / NIS / NIP | 0060254015 |
 | Password | 123 |
 | Role | Siswa |
 
