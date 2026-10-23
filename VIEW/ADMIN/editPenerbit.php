@@ -3,18 +3,40 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Proteksi Akses Admin
+// 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=dashboard_siswa';
-    header("Location: " . $kembali);
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
-// Simpan URL lokasi controller aktif saat ini
+// 2. Simpan URL lokasi controller aktif saat ini
 $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
+
+// 3. Tangkap ID dari parameter URL
+$idPenerbit = (int)($_GET['id_penerbit'] ?? 0);
+if ($idPenerbit <= 0) {
+    $_SESSION['error'] = "ID Penerbit tidak valid.";
+    // Clean URL: Redirect ke Daftar Penerbit
+    header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarPenerbit");
+    exit;
+}
+
+// 4. Panggil Model Data Penerbit
+require_once __DIR__ . "/../../MODEL/m_penerbit.php";
+$penerbitModel = new Penerbit();
+$dataPenerbit = $penerbitModel->getById($idPenerbit);
+
+if (!$dataPenerbit) {
+    $_SESSION['error'] = "Data penerbit tidak ditemukan.";
+    header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarPenerbit");
+    exit;
+}
 ?>
-
-
 
 <!DOCTYPE html>
 <html lang="id">
@@ -181,7 +203,7 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
                 <?php if (!empty($dataPenerbit)): ?>
 
-                    <form action="/Aplikasi Peminjaman Buku/CONTROLLER/c_penerbit.php?aksi=update" method="POST">
+                    <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_penerbit.php?aksi=update" method="POST">
                         
                         <input type="hidden" name="id_penerbit" value="<?= htmlspecialchars($dataPenerbit['id_penerbit']) ?>">
                         
@@ -212,7 +234,8 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
                         <div class="action-group">
                             <button type="submit" class="btn btn-submit">Simpan Perubahan</button>
-                            <a href="../VIEW/ADMIN/daftarPenerbit.php" class="btn btn-cancel">Batal</a>
+                            <!-- CLEAN URL: Kembali ke Daftar Penerbit -->
+                            <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenerbit" class="btn btn-cancel">Batal</a>
                         </div>
 
                     </form>
@@ -221,7 +244,8 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
                     <div class="alert-error">Data penerbit tidak ditemukan.</div>
                     <div style="text-align: center;">
-                        <a href="../VIEW/ADMIN/daftarPenerbit.php" class="btn btn-cancel" style="display: inline-block;">Kembali ke Daftar Penerbit</a>
+                        <!-- CLEAN URL: Kembali ke Daftar Penerbit -->
+                        <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenerbit" class="btn btn-cancel" style="display: inline-block;">Kembali ke Daftar Penerbit</a>
                     </div>
 
                 <?php endif; ?>

@@ -5,8 +5,13 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Proteksi Akses Siswa
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'siswa') {
-    $kembali = $_SESSION['last_page_admin'] ?? '/Aplikasi Peminjaman Buku/CONTROLLER/c_login.php';
-    header("Location: " . $kembali);
+    // Jika admin nyasar, kembalikan ke halaman admin terakhir!
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        $kembali = $_SESSION['last_page_admin'] ?? '/Aplikasi_Peminjaman_Buku/admin/dashboardAdmin';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -318,17 +323,20 @@ $stmtStat->close();
                 <!-- Menu Akses Cepat -->
                 <h3 class="section-title"><i class="fa-solid fa-bolt text-warning"></i> Menu Akses Cepat</h3>
                 <div class="actions-grid">
-                    <a href="/Aplikasi Peminjaman Buku/VIEW/SISWA/daftarBuku.php" class="action-widget">
+                    <!-- CLEAN URL: Cari & Pinjam Buku -->
+                    <a href="/Aplikasi_Peminjaman_Buku/siswa/daftarBuku" class="action-widget">
                         <i class="fa-solid fa-book-medical"></i>
                         <span>Cari & Pinjam Buku</span>
                     </a>
 
-                    <a href="/Aplikasi Peminjaman Buku/VIEW/SISWA/peminjaman.php" class="action-widget">
+                    <!-- CLEAN URL: Riwayat Peminjaman -->
+                    <a href="/Aplikasi_Peminjaman_Buku/siswa/peminjaman" class="action-widget">
                         <i class="fa-solid fa-clock-rotate-left"></i>
                         <span>Riwayat Peminjaman</span>
                     </a>
 
-                    <a href="/Aplikasi Peminjaman Buku/VIEW/SISWA/profil.php" class="action-widget">
+                    <!-- CLEAN URL: Pengaturan Profil -->
+                    <a href="/Aplikasi_Peminjaman_Buku/siswa/profil" class="action-widget">
                         <i class="fa-solid fa-user-gear"></i>
                         <span>Pengaturan Profil</span>
                     </a>

@@ -2,7 +2,7 @@
 session_start();
 
 if (isset($_SESSION['id_user'])) {
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/SISWA/daftarBuku.php");
+    header("Location: /Aplikasi_Peminjaman_Buku/VIEW/SISWA/daftarBuku.php");
     exit;
 }
 ?>
@@ -34,7 +34,7 @@ if (isset($_SESSION['id_user'])) {
             <h4 class="fw-bold mb-0">Daftar Akun Siswa</h4>
         </div>
         <div class="card-body p-4">
-            <form action="/Aplikasi Peminjaman Buku/CONTROLLER/c_login.php?aksi=register" method="POST">
+            <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_login.php?aksi=register" method="POST">
                 
                 <div class="mb-3">
                     <label class="form-label small fw-bold">NIS / NIP</label>
@@ -70,7 +70,8 @@ if (isset($_SESSION['id_user'])) {
             </form>
 
             <div class="text-center pt-3 mt-3 border-top">
-                <a href="/Aplikasi Peminjaman Buku/VIEW/AUTH/login.php" class="text-decoration-none small">Sudah punya akun? Login di sini</a>
+                <!-- CLEAN URL: Mengarah ke /login -->
+                <a href="/Aplikasi_Peminjaman_Buku/login" class="text-decoration-none small">Sudah punya akun? Login di sini</a>
             </div>
         </div>
     </div>

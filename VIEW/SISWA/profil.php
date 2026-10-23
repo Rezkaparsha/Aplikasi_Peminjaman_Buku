@@ -5,8 +5,12 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Proteksi Akses Siswa
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'siswa') {
-    $kembali = $_SESSION['last_page_admin'] ?? '/Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=dashboard_admin';
-    header("Location: " . $kembali);
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        $kembali = $_SESSION['last_page_admin'] ?? '/Aplikasi_Peminjaman_Buku/admin/dashboardAdmin';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -14,12 +18,6 @@ if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'siswa') {
 $_SESSION['last_page_siswa'] = $_SERVER['REQUEST_URI'];
 
 require_once __DIR__ . "/../../MODEL/m_koneksi.php";
-
-// Proteksi Halaman: Wajib Login
-if (!isset($_SESSION['id_user'])) {
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/AUTH/login.php");
-    exit;
-}
 
 $db = new Koneksi();
 $koneksi = $db->getKoneksi();
@@ -54,7 +52,8 @@ $stmt->close();
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        html, body {
+        html,
+        body {
             height: 100vh;
             width: 100vw;
             margin: 0;
@@ -373,7 +372,7 @@ $stmt->close();
                 <?php endif; ?>
 
                 <div class="profile-grid">
-                    
+
                     <!-- Kiri: Informasi Akun (Read-only) -->
                     <div class="card-custom">
                         <div class="avatar-wrapper">
@@ -415,7 +414,8 @@ $stmt->close();
                             <i class="fa-solid fa-key text-warning"></i> Ubah Password
                         </h5>
 
-                        <form action="/Aplikasi Peminjaman Buku/CONTROLLER/c_user.php?aksi=updatePassword" method="POST">
+                        <!-- Form action tetap terhubung ke Controller User -->
+                        <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_user.php?aksi=updatePassword" method="POST">
 
                             <div class="form-group">
                                 <label for="password_lama">Password Saat Ini</label>
@@ -456,4 +456,5 @@ $stmt->close();
     </div>
 
 </body>
+
 </html>

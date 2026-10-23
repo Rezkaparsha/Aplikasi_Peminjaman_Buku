@@ -3,17 +3,40 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Proteksi Akses Admin
+// 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=dashboard_siswa';
-    header("Location: " . $kembali);
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
-// Simpan URL lokasi controller aktif saat ini
+// 2. Simpan URL lokasi controller aktif saat ini
 $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
-?>
 
+// 3. Tangkap ID dari parameter URL
+$idPenulis = (int)($_GET['id_penulis'] ?? 0);
+if ($idPenulis <= 0) {
+    $_SESSION['error'] = "ID Penulis tidak valid.";
+    // Clean URL: Redirect ke Daftar Penulis
+    header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarPenulis");
+    exit;
+}
+
+// 4. Panggil Model Data Penulis
+require_once __DIR__ . "/../../MODEL/m_penulis.php";
+$penulisModel = new Penulis();
+$dataPenulis = $penulisModel->getById($idPenulis);
+
+if (!$dataPenulis) {
+    $_SESSION['error'] = "Data penulis tidak ditemukan.";
+    header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarPenulis");
+    exit;
+}
+?>
 
 <!DOCTYPE html>
 <html lang="id">
@@ -176,7 +199,7 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
                 <?php if (!empty($dataPenulis)): ?>
 
-                    <form action="/Aplikasi Peminjaman Buku/CONTROLLER/c_penulis.php?aksi=update" method="POST">
+                    <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_penulis.php?aksi=update" method="POST">
                         
                         <input type="hidden" name="id_penulis" value="<?= htmlspecialchars($dataPenulis['id_penulis']) ?>">
 
@@ -187,7 +210,8 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
                         <div class="action-group">
                             <button type="submit" class="btn btn-submit">Simpan Perubahan</button>
-                            <a href="../VIEW/ADMIN/daftarPenulis.php" class="btn btn-cancel">Batal</a>
+                            <!-- CLEAN URL: Kembali ke Daftar Penulis -->
+                            <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenulis" class="btn btn-cancel">Batal</a>
                         </div>
 
                     </form>
@@ -196,7 +220,8 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
                     <div class="alert-error">Data penulis tidak ditemukan.</div>
                     <div style="text-align: center;">
-                        <a href="../VIEW/ADMIN/daftarPenulis.php" class="btn btn-cancel" style="display: inline-block;">Kembali ke Daftar Penulis</a>
+                        <!-- CLEAN URL: Kembali ke Daftar Penulis -->
+                        <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenulis" class="btn btn-cancel" style="display: inline-block;">Kembali ke Daftar Penulis</a>
                     </div>
 
                 <?php endif; ?>

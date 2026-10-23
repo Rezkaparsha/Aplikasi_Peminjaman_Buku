@@ -3,9 +3,14 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. Proteksi Akses Admin
+// 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/AUTH/login.php");
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -16,7 +21,8 @@ $idPeminjaman = (int)($_GET['id_peminjaman'] ?? 0);
 
 if ($idPeminjaman <= 0) {
     $_SESSION['error'] = "ID Peminjaman tidak valid.";
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarPeminjaman.php");
+    // Clean URL: Redirect ke daftar Peminjaman
+    header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarPeminjaman");
     exit;
 }
 
@@ -29,7 +35,8 @@ $detailPeminjaman = $peminjamanModel->getDetailPeminjaman($idPeminjaman);
 
 if (!$dataPeminjaman) {
     $_SESSION['error'] = "Data peminjaman tidak ditemukan.";
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarPeminjaman.php");
+    // Clean URL: Redirect ke daftar Peminjaman
+    header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarPeminjaman");
     exit;
 }
 ?>
@@ -241,42 +248,19 @@ if (!$dataPeminjaman) {
             display: inline-block;
         }
 
-        .btn-success {
-            background-color: #2ecc71;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background-color: #27ae60;
-        }
-
-        .btn-primary {
-            background-color: #3498db;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: #2980b9;
-        }
-
-        .btn-danger {
-            background-color: #e74c3c;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background-color: #c0392b;
-        }
+        .btn-success { background-color: #2ecc71; color: white; }
+        .btn-success:hover { background-color: #27ae60; }
+        .btn-primary { background-color: #3498db; color: white; }
+        .btn-primary:hover { background-color: #2980b9; }
+        .btn-danger { background-color: #e74c3c; color: white; }
+        .btn-danger:hover { background-color: #c0392b; }
 
         .btn-back {
             background-color: #95a5a6;
             color: white;
             margin-top: 10px;
         }
-
-        .btn-back:hover {
-            background-color: #7f8c8d;
-        }
+        .btn-back:hover { background-color: #7f8c8d; }
 
         .badge {
             padding: 5px 12px;
@@ -287,28 +271,15 @@ if (!$dataPeminjaman) {
             text-transform: uppercase;
             display: inline-block;
         }
-
-        .badge-warning {
-            background-color: #f39c12;
-        }
-
-        .badge-info {
-            background-color: #3498db;
-        }
-
-        .badge-success {
-            background-color: #2ecc71;
-        }
-
-        .badge-danger {
-            background-color: #e74c3c;
-        }
+        .badge-warning { background-color: #f39c12; }
+        .badge-info { background-color: #3498db; }
+        .badge-success { background-color: #2ecc71; }
+        .badge-danger { background-color: #e74c3c; }
 
         .input-group {
             display: flex;
             align-items: center;
         }
-
         .input-group-text {
             background-color: #eee;
             padding: 9px 12px;
@@ -318,7 +289,6 @@ if (!$dataPeminjaman) {
             font-size: 13px;
             color: #555;
         }
-
         .input-group .form-control {
             border-radius: 0 5px 5px 0;
         }
@@ -401,8 +371,8 @@ if (!$dataPeminjaman) {
                 </div>
 
                 <?php if ($dataPeminjaman['status'] === 'Dipinjam'): ?>
-                    <!-- FORM PROSES PENGEMBALIAN BUKU (HANYA AKTIF SAAT DIPINJAM) -->
-                    <form action="/Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=prosesKembali" method="POST">
+                    <!-- FORM PROSES PENGEMBALIAN BUKU -->
+                    <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_peminjaman.php?aksi=prosesKembali" method="POST">
                         <input type="hidden" name="id_peminjaman" value="<?= htmlspecialchars($dataPeminjaman['id_peminjaman']) ?>">
 
                         <div class="table-responsive">
@@ -424,7 +394,7 @@ if (!$dataPeminjaman) {
                                             <td><?= $no + 1 ?></td>
                                             <td>
                                                 <?php if (!empty($buku['cover'])): ?>
-                                                    <img src="/Aplikasi Peminjaman Buku/ASSETS/COVER/<?= htmlspecialchars($buku['cover']) ?>" class="cover-img" alt="Cover">
+                                                    <img src="/Aplikasi_Peminjaman_Buku/ASSETS/COVER/<?= htmlspecialchars($buku['cover']) ?>" class="cover-img" alt="Cover">
                                                 <?php else: ?>
                                                     <div class="no-cover">No Cover</div>
                                                 <?php endif; ?>
@@ -481,7 +451,7 @@ if (!$dataPeminjaman) {
                                         <td><?= $no + 1 ?></td>
                                         <td>
                                             <?php if (!empty($buku['cover'])): ?>
-                                                <img src="/Aplikasi Peminjaman Buku/ASSETS/COVER/<?= htmlspecialchars($buku['cover']) ?>" class="cover-img" alt="Cover">
+                                                <img src="/Aplikasi_Peminjaman_Buku/ASSETS/COVER/<?= htmlspecialchars($buku['cover']) ?>" class="cover-img" alt="Cover">
                                             <?php else: ?>
                                                 <div class="no-cover">No Cover</div>
                                             <?php endif; ?>
@@ -521,7 +491,7 @@ if (!$dataPeminjaman) {
                         <!-- Form Setujui -->
                         <div class="action-card">
                             <h4>Persetujuan Peminjaman</h4>
-                            <form action="/Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=setujui" method="POST">
+                            <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_peminjaman.php?aksi=setujui" method="POST">
                                 <input type="hidden" name="id_peminjaman" value="<?= htmlspecialchars($dataPeminjaman['id_peminjaman']) ?>">
                                 <div class="form-group">
                                     <label>Target Tanggal Pengembalian</label>
@@ -534,7 +504,7 @@ if (!$dataPeminjaman) {
                         <!-- Form Tolak -->
                         <div class="action-card">
                             <h4>Penolakan Pengajuan</h4>
-                            <form action="/Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=tolak" method="POST">
+                            <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_peminjaman.php?aksi=tolak" method="POST">
                                 <input type="hidden" name="id_peminjaman" value="<?= htmlspecialchars($dataPeminjaman['id_peminjaman']) ?>">
                                 <div class="form-group">
                                     <label>Alasan Penolakan</label>
@@ -547,8 +517,8 @@ if (!$dataPeminjaman) {
                 </div>
             <?php endif; ?>
 
-            <!-- Tombol Kembali -->
-            <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarPeminjaman.php" class="btn btn-back">← Kembali ke Daftar Peminjaman</a>
+            <!-- CLEAN URL: Kembali ke Daftar Peminjaman -->
+            <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPeminjaman" class="btn btn-back">← Kembali ke Daftar Peminjaman</a>
 
         </div>
     </div>

@@ -1,18 +1,18 @@
 <?php
 session_start();
 
-// Jika belum login, arahkan ke form login
+// Jika belum login, arahkan ke URL login bersih
 if (!isset($_SESSION['id_user'])) {
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/AUTH/login.php");
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
-// Jika sudah login, cek rolenya dan arahkan ke dashboard masing-masing
+// Jika sudah login, arahkan ke dashboard/katalog masing-masing sesuai routing .htaccess Anda
 if (isset($_SESSION['role'])) {
     if ($_SESSION['role'] === 'admin') {
-        header("Location: /Aplikasi Peminjaman Buku/VIEW/ADMIN/dashboardAdmin.php");
+        header("Location: /Aplikasi_Peminjaman_Buku/admin/dashboardAdmin");
     } else {
-        header("Location: /Aplikasi Peminjaman Buku/VIEW/SISWA/daftarBuku.php");
+        header("Location: /Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa");
     }
     exit;
 }

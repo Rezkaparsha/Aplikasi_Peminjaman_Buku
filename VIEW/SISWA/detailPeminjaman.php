@@ -1,13 +1,16 @@
 <?php
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Proteksi Akses Siswa
+// Proteksi Akses Siswa Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'siswa') {
-    $kembali = $_SESSION['last_page_admin'] ?? '/Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=dashboard_admin';
-    header("Location: " . $kembali);
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        $kembali = $_SESSION['last_page_admin'] ?? '/Aplikasi_Peminjaman_Buku/admin/dashboardAdmin';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -16,19 +19,13 @@ $_SESSION['last_page_siswa'] = $_SERVER['REQUEST_URI'];
 
 require_once __DIR__ . "/../../MODEL/m_peminjaman.php";
 
-// Proteksi Halaman: Wajib Login
-if (!isset($_SESSION['id_user'])) {
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/AUTH/login.php");
-    exit;
-}
-
-// Mengambil ID User dari sesi akun yang sedang login (bukan hardcode lagi)
+// Mengambil ID User dari sesi akun yang sedang login
 $id_user = (int)$_SESSION['id_user'];
 $id_peminjaman = isset($_GET['id_peminjaman']) ? (int)$_GET['id_peminjaman'] : 0;
 
 if ($id_peminjaman <= 0) {
     $_SESSION['error'] = "ID Peminjaman tidak valid.";
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/SISWA/peminjaman.php");
+    header("Location: /Aplikasi_Peminjaman_Buku/siswa/peminjaman");
     exit;
 }
 
@@ -37,7 +34,7 @@ $modelPeminjaman = new M_Peminjaman();
 // Cek apakah transaksi ini milik user yang sedang login
 if (!$modelPeminjaman->cekKepemilikanPeminjaman($id_peminjaman, $id_user)) {
     $_SESSION['error'] = "Anda tidak memiliki akses ke data peminjaman ini.";
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/SISWA/peminjaman.php");
+    header("Location: /Aplikasi_Peminjaman_Buku/siswa/peminjaman");
     exit;
 }
 
@@ -161,7 +158,8 @@ $detailBuku = $modelPeminjaman->getDetailPeminjaman($id_peminjaman);
                 </h3>
                 <p class="text-muted mb-0">Detail informasi buku dan status pengajuan Anda</p>
             </div>
-            <a href="/Aplikasi Peminjaman Buku/VIEW/SISWA/peminjaman.php" class="btn btn-outline-secondary rounded-pill px-4">
+            <!-- CLEAN URL: Kembali ke Riwayat Peminjaman -->
+            <a href="/Aplikasi_Peminjaman_Buku/siswa/peminjaman" class="btn btn-outline-secondary rounded-pill px-4">
                 <i class="fa-solid fa-arrow-left me-2"></i>Kembali ke Peminjaman Saya
             </a>
         </div>
@@ -216,8 +214,6 @@ $detailBuku = $modelPeminjaman->getDetailPeminjaman($id_peminjaman);
                         <!-- SAMPAI SINI -->
                     </div>
                 </div>
-                    </div>
-                </div>
 
                 <!-- List Buku Card (Kanan) -->
                 <div class="col-lg-8">
@@ -241,8 +237,9 @@ $detailBuku = $modelPeminjaman->getDetailPeminjaman($id_peminjaman);
                                             <tr>
                                                 <td>
                                                     <div class="d-flex align-items-center">
+                                                        <!-- CLEAN URL: Path gambar diubah ke Absolute Path -->
                                                         <?php if (!empty($item['cover'])): ?>
-                                                            <img src="/Aplikasi Peminjaman Buku/ASSETS/COVER/<?= htmlspecialchars($item['cover']) ?>" class="cover-buku me-3" alt="Cover">
+                                                            <img src="/Aplikasi_Peminjaman_Buku/ASSETS/COVER/<?= htmlspecialchars($item['cover']) ?>" class="cover-buku me-3" alt="Cover">
                                                         <?php else: ?>
                                                             <div class="bg-light border rounded d-flex align-items-center justify-content-center me-3 cover-buku">
                                                                 <i class="fa-solid fa-book text-muted"></i>

@@ -2,6 +2,17 @@
 
 require_once 'm_denda.php';
 
+if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
+    $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+    if (!isset($_SESSION['id_user'])) {
+        $kembali = '/Aplikasi_Peminjaman_Buku/login';
+    }
+    header("Location: " . $kembali);
+    exit;
+}
+
+$_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
+
 class DendaController
 {
     private $denda;

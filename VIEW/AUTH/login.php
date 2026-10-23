@@ -4,10 +4,10 @@ session_start();
 // Jika user sudah login, arahkan langsung ke halaman masing-masing
 if (isset($_SESSION['id_user'])) {
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
-        header("Location: /Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=admin");
+        header("Location: /Aplikasi_Peminjaman_Buku/CONTROLLER/c_peminjaman.php?aksi=admin");
         exit;
     } else {
-        header("Location: /Aplikasi Peminjaman Buku/VIEW/SISWA/daftarBuku.php");
+        header("Location: /Aplikasi_Peminjaman_Buku/VIEW/SISWA/daftarBuku.php");
         exit;
     }
 }
@@ -73,7 +73,7 @@ if (isset($_SESSION['id_user'])) {
         </div>
 
         <div class="card-body p-4">
-            <form action="/Aplikasi Peminjaman Buku/CONTROLLER/c_login.php?aksi=login" method="POST">
+            <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_login.php?aksi=login" method="POST">
                 
                 <div class="mb-3">
                     <label class="form-label small fw-semibold">NIS / NIP / Username</label>
@@ -99,7 +99,8 @@ if (isset($_SESSION['id_user'])) {
 
             <div class="text-center pt-3 border-top">
                 <p class="small text-muted mb-0">Belum memiliki akun siswa?</p>
-                <a href="/Aplikasi Peminjaman Buku/VIEW/AUTH/register.php" class="fw-bold text-decoration-none">Daftar Akun Siswa Sekarang</a>
+                <!-- CLEAN URL: Mengarah ke /register -->
+                <a href="/Aplikasi_Peminjaman_Buku/register" class="fw-bold text-decoration-none">Daftar Akun Siswa Sekarang</a>
             </div>
         </div>
     </div>

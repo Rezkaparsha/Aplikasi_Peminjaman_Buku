@@ -35,6 +35,26 @@ class Users
         return $data;
     }
 
+    // MENCARI USER BERDASARKAN KEYWORD (PENCARIAN)
+    public function search($keyword)
+    {
+        $keyword = "%{$keyword}%";
+        // Mencari berdasarkan NIS/NIP, Nama Lengkap, atau Username
+        $stmt = $this->koneksi->prepare(
+            "SELECT * FROM users WHERE nis_nip LIKE ? OR nama_lengkap LIKE ? OR username LIKE ? ORDER BY id_user DESC"
+        );
+
+        $stmt->bind_param("sss", $keyword, $keyword, $keyword);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $data[] = $row;
+        }
+        return $data;
+    }
+
     // MENCARI USER BERDASARKAN ID
     public function getById($id_user)
     {
@@ -151,4 +171,3 @@ class Users
         return $stmt->execute();
     }
 }
-?>

@@ -3,9 +3,14 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. Proteksi Akses Admin
+// 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/AUTH/login.php");
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -182,7 +187,8 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
                     <div class="action-group">
                         <button type="submit" class="btn btn-submit">Simpan</button>
-                        <a href="daftarPenulis.php" class="btn btn-cancel">Batal</a>
+                        <!-- CLEAN URL: Kembali ke Daftar Penulis -->
+                        <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenulis" class="btn btn-cancel">Batal</a>
                     </div>
 
                 </form>

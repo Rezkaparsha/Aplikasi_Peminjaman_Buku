@@ -5,8 +5,14 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Proteksi Akses Siswa
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'siswa') {
-    $kembali = $_SESSION['last_page_admin'] ?? '/Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=dashboard_admin';
-    header("Location: " . $kembali);
+    // Jika admin nyasar, kembalikan ke halaman admin terakhir!
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        $kembali = $_SESSION['last_page_admin'] ?? '/Aplikasi_Peminjaman_Buku/admin/dashboardAdmin';
+        header("Location: " . $kembali);
+        exit;
+    }
+    // Jika belum login
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -77,7 +83,7 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
     <!-- Bootstrap 5 CSS & FontAwesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="website icon" href="/Aplikasi Peminjaman Buku/ASSETS/logoApp.jpg">
+    <link rel="website icon" href="/Aplikasi_Peminjaman_Buku/ASSETS/logoApp.jpg">
     <style>
         /* 1. Kunci Layar Utama */
         * {
@@ -211,9 +217,9 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
             display: flex;
             align-items: center;
             list-style: none;
-            gap: 6px;
             margin: 0;
             padding: 0;
+            gap: 6px;
         }
 
         .pagination a {
@@ -265,7 +271,8 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                         <h3 class="fw-bold text-dark mb-1"><i class="fa-solid fa-book-open text-primary me-2"></i>Katalog Buku</h3>
                         <p class="text-muted mb-0">Cari dan pilih buku yang ingin Anda pinjam.</p>
                     </div>
-                    <a href="/Aplikasi Peminjaman Buku/VIEW/SISWA/peminjaman.php" class="btn btn-outline-primary rounded-pill px-4 fw-semibold">
+                    <!-- CLEAN URL: Peminjaman Saya -->
+                    <a href="/Aplikasi_Peminjaman_Buku/siswa/peminjaman" class="btn btn-outline-primary rounded-pill px-4 fw-semibold">
                         <i class="fa-solid fa-list-check me-2"></i>Peminjaman Saya
                     </a>
                 </div>
@@ -320,13 +327,14 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                         </div>
                         <div class="col-12 col-md-2 d-flex gap-2">
                             <button type="submit" class="btn btn-primary w-100 fw-semibold">Filter</button>
-                            <a href="katalogBuku.php" class="btn btn-secondary text-white"><i class="fa-solid fa-rotate-right"></i></a>
+                            <!-- CLEAN URL: Reset Filter -->
+                            <a href="/Aplikasi_Peminjaman_Buku/siswa/daftarBuku" class="btn btn-secondary text-white"><i class="fa-solid fa-rotate-right"></i></a>
                         </div>
                     </form>
                 </div>
 
                 <!-- FORM PENGAJUAN PEMINJAMAN -->
-                <form action="/Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=tambah" method="POST" id="formPeminjaman" style="padding-bottom: 100px;">
+                <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_peminjaman.php?aksi=tambah" method="POST" id="formPeminjaman" style="padding-bottom: 100px;">
 
                     <div class="row g-4">
                         <?php if (!empty($bukuPaginated)): ?>
@@ -338,7 +346,7 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                                         <!-- Container Cover Buku -->
                                         <div class="cover-container">
                                             <?php if (!empty($buku['cover'])): ?>
-                                                <img src="/Aplikasi Peminjaman Buku/ASSETS/COVER/<?= htmlspecialchars($buku['cover']) ?>" class="cover-buku" alt="Cover Buku">
+                                                <img src="/Aplikasi_Peminjaman_Buku/ASSETS/COVER/<?= htmlspecialchars($buku['cover']) ?>" class="cover-buku" alt="Cover Buku">
                                             <?php else: ?>
                                                 <i class="fa-solid fa-book-open fa-3x text-secondary opacity-50"></i>
                                             <?php endif; ?>

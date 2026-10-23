@@ -3,9 +3,14 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. Proteksi Akses Admin: Arahkan ke login utama jika tidak ada session admin
+// 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/AUTH/login.php");
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -40,7 +45,12 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daftar Penerbit - Perpustakaan Online</title>
-
+        <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -295,7 +305,8 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
                         <p>Kelola data instansi/perusahaan penerbit yang bukunya tersedia di perpustakaan.</p>
                     </div>
                     <div>
-                        <a href="tambahPenerbit.php" class="btn btn-primary">+ Tambah Penerbit</a>
+                        <!-- CLEAN URL: Tambah Penerbit -->
+                        <a href="/Aplikasi_Peminjaman_Buku/admin/tambahPenerbit" class="btn btn-primary">+ Tambah Penerbit</a>
                     </div>
                 </div>
 
@@ -342,7 +353,8 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
                                         <td><?= htmlspecialchars($penerbit['email'] ?? '-') ?></td>
                                         <td>
                                             <div class="action-group">
-                                                <a href="../../CONTROLLER/c_penerbit.php?aksi=edit&id_penerbit=<?= $penerbit['id_penerbit'] ?>" class="btn btn-edit">Edit</a>
+                                                <!-- CLEAN URL: Edit Penerbit -->
+                                                <a href="/Aplikasi_Peminjaman_Buku/admin/editPenerbit?id_penerbit=<?= $penerbit['id_penerbit'] ?>" class="btn btn-edit">Edit</a>
                                                 <a href="#" onclick="konfirmasiHapus(<?= $penerbit['id_penerbit'] ?>)" class="btn btn-delete">Hapus</a>
                                             </div>
                                         </td>
@@ -386,7 +398,8 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
 
             </div>
 
-            <a href="daftarBuku.php" class="btn btn-back">← Kembali ke Daftar Buku</a>
+            <!-- CLEAN URL: Kembali ke Daftar Buku -->
+            <a href="/Aplikasi_Peminjaman_Buku/admin/daftarBuku" class="btn btn-back">← Kembali ke Daftar Buku</a>
         </div>
     </div>
 
@@ -404,7 +417,8 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = "../../CONTROLLER/c_penerbit.php?aksi=hapus&id_penerbit=" + id;
+                    // Absolute path ke controller hapus
+                    window.location.href = "/Aplikasi_Peminjaman_Buku/CONTROLLER/c_penerbit.php?aksi=hapus&id_penerbit=" + id;
                 }
             });
         }

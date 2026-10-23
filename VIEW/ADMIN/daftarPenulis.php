@@ -3,9 +3,14 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. Proteksi Akses Admin
+// 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/AUTH/login.php");
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -41,7 +46,12 @@ $penulisPaginated = array_slice($daftarPenulis, $offset, $limit);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daftar Penulis - Perpustakaan Online</title>
-
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- SweetAlert2 JS (Untuk Pop Up Konfirmasi) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -121,7 +131,7 @@ $penulisPaginated = array_slice($daftarPenulis, $offset, $limit);
             margin-top: 4px;
         }
 
-        /* Banner Alert Sesuai Foto */
+        /* Banner Alert */
         .alert-banner {
             padding: 14px 18px;
             border-radius: 6px;
@@ -309,11 +319,12 @@ $penulisPaginated = array_slice($daftarPenulis, $offset, $limit);
                         <p>Kelola data pengarang dari buku-buku yang ada di perpustakaan.</p>
                     </div>
                     <div>
-                        <a href="tambahPenulis.php" class="btn btn-primary">+ Tambah Penulis</a>
+                        <!-- CLEAN URL: Tambah Penulis -->
+                        <a href="/Aplikasi_Peminjaman_Buku/admin/tambahPenulis" class="btn btn-primary">+ Tambah Penulis</a>
                     </div>
                 </div>
 
-                <!-- BANNER NOTIFIKASI SAMA SEPERTI FOTO HALAMAN BUKU -->
+                <!-- BANNER NOTIFIKASI -->
                 <?php if (isset($_SESSION['error'])): ?>
                     <div class="alert-banner alert-banner-error">
                         <span>⚠️</span>
@@ -348,7 +359,8 @@ $penulisPaginated = array_slice($daftarPenulis, $offset, $limit);
                                         <td><strong><?= htmlspecialchars($penulis['nama_penulis']) ?></strong></td>
                                         <td>
                                             <div class="action-group">
-                                                <a href="../../CONTROLLER/c_penulis.php?aksi=edit&id_penulis=<?= $penulis['id_penulis'] ?>" class="btn btn-edit">Edit</a>
+                                                <!-- CLEAN URL: Edit Penulis -->
+                                                <a href="/Aplikasi_Peminjaman_Buku/admin/editPenulis?id_penulis=<?= $penulis['id_penulis'] ?>" class="btn btn-edit">Edit</a>
                                                 <a href="#" onclick="konfirmasiHapus(<?= $penulis['id_penulis'] ?>)" class="btn btn-delete">Hapus</a>
                                             </div>
                                         </td>
@@ -392,7 +404,8 @@ $penulisPaginated = array_slice($daftarPenulis, $offset, $limit);
 
             </div>
 
-            <a href="daftarBuku.php" class="btn btn-back">← Kembali ke Daftar Buku</a>
+            <!-- CLEAN URL: Kembali ke Daftar Buku -->
+            <a href="/Aplikasi_Peminjaman_Buku/admin/daftarBuku" class="btn btn-back">← Kembali ke Daftar Buku</a>
         </div>
     </div>
 
@@ -410,7 +423,8 @@ $penulisPaginated = array_slice($daftarPenulis, $offset, $limit);
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = "../../CONTROLLER/c_penulis.php?aksi=hapus&id_penulis=" + id;
+                    // Absolute path ke Controller Hapus
+                    window.location.href = "/Aplikasi_Peminjaman_Buku/CONTROLLER/c_penulis.php?aksi=hapus&id_penulis=" + id;
                 }
             });
         }

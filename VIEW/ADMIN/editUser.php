@@ -1,13 +1,16 @@
 <?php
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. Proteksi Akses Admin (Poin 1 Keamanan)
+// 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi Peminjaman Buku/VIEW/SISWA/dashboardSiswa.php';
-    header("Location: " . $kembali);
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -18,24 +21,19 @@ $id_user = (int)($_GET['id_user'] ?? 0);
 
 if ($id_user <= 0) {
     $_SESSION['error'] = "ID User tidak valid.";
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarUser.php");
+    header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarUser");
     exit;
 }
-if ($id_user <= 0) {
-    $_SESSION['error'] = "ID User tidak valid.";
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarUser.php");
-    exit;
-}
-// 3. Panggil Model Users Langsung untuk Mengambil Data User Berdasarkan ID
+
+// 3. Panggil Model Users
 require_once __DIR__ . "/../../MODEL/m_users.php";
 $userModel = new Users();
 
-// Mengambil data user berdasarkan ID (sesuaikan nama method dengan m_users.php kamu, misal: getById atau getUserById)
 $dataUser = $userModel->getById($id_user);
 
 if (!$dataUser) {
     $_SESSION['error'] = "Data user tidak ditemukan di database.";
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarUser.php");
+    header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarUser");
     exit;
 }
 ?>
@@ -48,7 +46,6 @@ if (!$dataUser) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit User - Perpustakaan Online</title>
     <style>
-        /* Reset & Base Styles */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -63,7 +60,6 @@ if (!$dataUser) {
             min-height: 100vh;
         }
 
-        /* Main Content Layout */
         .main-content {
             flex: 1;
             display: flex;
@@ -91,7 +87,6 @@ if (!$dataUser) {
             overflow-y: auto;
         }
 
-        /* Form Wrapper Grid */
         .form-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -99,7 +94,6 @@ if (!$dataUser) {
             max-width: 1000px;
         }
 
-        /* Card Container */
         .card {
             background: #ffffff;
             padding: 25px;
@@ -118,7 +112,16 @@ if (!$dataUser) {
             font-size: 18px;
         }
 
-        /* Form Layout */
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #842029;
+            border: 1px solid #f5c2c7;
+            padding: 12px 15px;
+            border-radius: 6px;
+            font-size: 13.5px;
+            margin-bottom: 20px;
+        }
+
         .form-group {
             margin-bottom: 18px;
         }
@@ -147,7 +150,6 @@ if (!$dataUser) {
             box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
         }
 
-        /* Buttons */
         .action-group {
             display: flex;
             gap: 10px;
@@ -220,7 +222,15 @@ if (!$dataUser) {
                         <h3>Informasi Pengguna</h3>
                     </div>
 
-                    <form action="/Aplikasi Peminjaman Buku/CONTROLLER/c_user.php?aksi=update" method="POST">
+                    <!-- ALERT NOTIFIKASI ERROR -->
+                    <?php if (isset($_SESSION['error'])): ?>
+                        <div class="alert-danger">
+                            <span>⚠️ <?= htmlspecialchars($_SESSION['error']) ?></span>
+                        </div>
+                        <?php unset($_SESSION['error']); ?>
+                    <?php endif; ?>
+
+                    <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_user.php?aksi=update" method="POST">
                         <input type="hidden" name="id_user" value="<?= htmlspecialchars($dataUser['id_user']) ?>">
 
                         <div class="form-group">
@@ -254,7 +264,7 @@ if (!$dataUser) {
 
                         <div class="action-group">
                             <button type="submit" class="btn btn-submit">Simpan Perubahan</button>
-                            <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarUser.php" class="btn btn-cancel">Batal</a>
+                            <a href="/Aplikasi_Peminjaman_Buku/admin/daftarUser" class="btn btn-cancel">Batal</a>
                         </div>
                     </form>
                 </div>
@@ -265,7 +275,7 @@ if (!$dataUser) {
                         <h3>Ganti Password</h3>
                     </div>
 
-                    <form action="/Aplikasi Peminjaman Buku/CONTROLLER/c_user.php?aksi=updatePassword" method="POST">
+                    <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_user.php?aksi=updatePassword" method="POST">
                         <input type="hidden" name="id_user" value="<?= htmlspecialchars($dataUser['id_user']) ?>">
 
                         <div class="form-group">

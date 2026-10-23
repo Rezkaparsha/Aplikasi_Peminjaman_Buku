@@ -3,10 +3,14 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. Proteksi Akses Admin (Poin 1 Keamanan Tetap Aktif)
+// 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi Peminjaman Buku/VIEW/SISWA/dashboardSiswa.php';
-    header("Location: " . $kembali);
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -53,6 +57,7 @@ $totalSemuaDenda = 0;
 
         body {
             display: flex;
+            color: #333;
         }
 
         /* 2. Main Content mengisi sisa area layar tanpa melebihi batas */
@@ -67,7 +72,7 @@ $totalSemuaDenda = 0;
 
         /* 3. Container utama dibuat responsif dan hanya konten di dalamnya yang di-scroll jika panjang */
         .container {
-            padding: 25px;
+            padding: 30px;
             flex: 1;
             overflow-y: auto;
             /* Hanya scroll ke bawah jika isi tabel panjang */
@@ -95,22 +100,8 @@ $totalSemuaDenda = 0;
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
-            min-width: 100%;
+            min-width: 1000px;
             /* UBAH min-width: 800px/900px menjadi 100% agar pas dengan card */
-        }
-
-        body {
-            background-color: #f4f7f6;
-            color: #333;
-            display: flex;
-            min-height: 100vh;
-        }
-
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
         }
 
         .topbar {
@@ -125,19 +116,6 @@ $totalSemuaDenda = 0;
         .topbar h2 {
             font-size: 20px;
             color: #2c3e50;
-        }
-
-        .container {
-            padding: 30px;
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .card {
-            background: #ffffff;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
         }
 
         .page-header {
@@ -155,18 +133,6 @@ $totalSemuaDenda = 0;
             color: #7f8c8d;
             font-size: 13px;
             margin-top: 4px;
-        }
-
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            min-width: 1000px;
         }
 
         .data-table th,

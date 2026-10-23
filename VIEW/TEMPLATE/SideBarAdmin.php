@@ -1,268 +1,241 @@
 <?php
-
-// Panggil Model yang dibutuhkan untuk statistik/info sidebar
+// Panggil Model yang dibutuhkan
 require_once __DIR__ . "/../../MODEL/m_buku.php";
 require_once __DIR__ . "/../../MODEL/m_users.php";
 require_once __DIR__ . "/../../MODEL/m_peminjaman.php";
 
-$bukuModel = new Buku();
-$userModel = new Users();
-$peminjamanModel = new M_Peminjaman();
-
-$totalBuku = count($bukuModel->getAllBuku() ?? []);
-$totalUser = count($userModel->getAll() ?? []);
-$totalPeminjaman = count($peminjamanModel->getSemuaPeminjaman() ?? []);
-
 $namaAdmin = $_SESSION['nama_lengkap'] ?? $_SESSION['nama'] ?? 'Administrator';
-$currentPage = $_GET['aksi'] ?? basename($_SERVER['PHP_SELF']);
+$currentUri = $_SERVER['REQUEST_URI'];
+
+// FUNGSI CEK MENU AKTIF (BEBAS ERROR VERT & LEBIH AKURAT)
+if (!function_exists('isMenuAktif')) {
+    function isMenuAktif($uri, $keywords) {
+        foreach ($keywords as $key) {
+            if (strpos($uri, $key) !== false) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+// LOGIKA MENU AKTIF YANG DIPERBAIKI
+// Menggunakan nama rute/file spesifik agar tidak bentrok dengan nama folder "Aplikasi_Peminjaman_Buku"
+$aktifDashboard  = isMenuAktif($currentUri, ['dashboardAdmin']);
+$aktifPeminjaman = isMenuAktif($currentUri, ['daftarPeminjaman', 'detailPeminjaman']);
+$aktifBuku       = isMenuAktif($currentUri, ['daftarBuku', 'tambahBuku', 'editBuku']);
+$aktifKategori   = isMenuAktif($currentUri, ['daftarKategori', 'tambahKategori', 'editKategori']);
+$aktifPenerbit   = isMenuAktif($currentUri, ['daftarPenerbit', 'tambahPenerbit', 'editPenerbit']);
+$aktifPenulis    = isMenuAktif($currentUri, ['daftarPenulis', 'tambahPenulis', 'editPenulis']);
+$aktifUser       = isMenuAktif($currentUri, ['daftarUser', 'tambahUser', 'editUser']);
+$aktifHistori    = isMenuAktif($currentUri, ['historiTransaksi']);
 ?>
 
+<!-- ASSETS PENDUKUNG -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 <style>
-    .sidebar {
-        width: 280px; 
-        min-width: 280px;
-        min-height: 100vh;
-        background: #1e293b; 
-        color: #f8fafc;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-        z-index: 100;
+    /* CSS KUNCI MUTLAK (ANTI-BERANTAKAN) */
+    .sidebar-permanen {
+        width: 260px !important;
+        min-width: 260px !important;
+        max-width: 260px !important;
+        flex: 0 0 260px !important;
+        height: 100vh !important;
+        background-color: #0b1121 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+        border-right: 1px solid #1e293b !important;
+        user-select: none !important;
     }
 
     .sidebar-header {
-        padding: 24px 20px;
-        text-align: left;
-        background-color: #0f172a;
-        border-bottom: 1px solid #334155;
-        display: flex;
-        align-items: center;
-        gap: 12px;
+        padding: 20px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 15px !important;
+        border-bottom: 1px solid #1e293b !important;
+        flex-shrink: 0 !important;
     }
 
-    /* PERBAIKAN CONTAINER LOGO */
-    .sidebar-header .brand-icon {
-        width: 45px;
-        height: 45px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 10px;
-        background-color: #ffffff; /* Diubah menjadi putih agar logo lebih menonjol */
-        overflow: hidden; /* Mencegah gambar keluar dari border radius */
-        flex-shrink: 0; /* Mencegah ikon mengecil */
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    .sidebar-menu-list {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        padding: 15px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 5px !important;
     }
 
-    /* PERBAIKAN UKURAN GAMBAR LOGO */
-    .sidebar-header .brand-icon img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover; /* Membuat gambar proporsional memenuhi kotak */
-        object-position: center;
-        padding: 2px; /* Memberi sedikit jarak (margin dalam) agar logo tidak mentok ke garis */
+    .sidebar-menu-list::-webkit-scrollbar { width: 5px; }
+    .sidebar-menu-list::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-menu-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+    .menu-item {
+        display: flex !important;
+        align-items: center !important;
+        gap: 15px !important;
+        padding: 12px 18px !important;
+        border-radius: 10px !important;
+        text-decoration: none !important;
+        color: #94a3b8 !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        transition: 0.3s !important;
     }
 
-    .sidebar-header h3 {
-        font-size: 17px;
-        font-weight: 700;
-        color: #ffffff;
-        margin: 0;
-        line-height: 1.2;
-        white-space: nowrap;
+    .menu-item:hover {
+        background-color: #1e293b !important;
+        color: #ffffff !important;
     }
 
-    .sidebar-header small {
-        color: #94a3b8;
-        font-size: 12px;
-        font-weight: 500;
+    .menu-item.active {
+        background-color: #3b82f6 !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4) !important;
     }
 
-    .sidebar-menu {
-        list-style: none;
-        padding: 15px 10px;
-        flex: 1;
-        overflow-y: auto;
-    }
-
-    .sidebar-menu li {
-        margin-bottom: 4px;
-    }
-
-    .sidebar-menu li a {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
-        color: #94a3b8;
-        text-decoration: none;
-        transition: all 0.2s ease-in-out;
-        border-radius: 8px;
-        font-size: 13.5px;
-        font-weight: 500;
-        white-space: nowrap; 
-    }
-
-    .sidebar-menu li a:hover {
-        background-color: #334155;
-        color: #ffffff;
-    }
-
-    .sidebar-menu li a.active {
-        background-color: #2563eb;
-        color: #ffffff;
-        font-weight: 600;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    .menu-icon {
+        width: 20px !important;
+        text-align: center !important;
+        font-size: 16px !important;
     }
 
     .sidebar-footer {
-        padding: 15px 15px 20px 15px;
-        background-color: #0f172a;
-        border-top: 1px solid #334155;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
+        padding: 20px !important;
+        border-top: 1px solid #1e293b !important;
+        flex-shrink: 0 !important;
     }
 
-    .user-info-card {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px;
-        background: #1e293b;
-        border-radius: 8px;
+    .profil-box {
+        background-color: #1e293b !important;
+        padding: 12px !important;
+        border-radius: 10px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        margin-bottom: 15px !important;
     }
 
-    .user-avatar {
-        width: 35px;
-        height: 35px;
-        background: #38bdf8;
-        color: #0f172a;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 14px;
+    .logout-btn {
+        background-color: #3f1a1e !important;
+        color: #fca5a5 !important;
+        border: 1px solid #7f1d1d !important;
+        width: 100% !important;
+        padding: 12px !important;
+        border-radius: 10px !important;
+        text-align: center !important;
+        font-size: 14px !important;
+        font-weight: bold !important;
+        cursor: pointer !important;
+        transition: 0.3s !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
     }
 
-    .user-details {
-        overflow: hidden;
-    }
-
-    .user-name {
-        font-size: 13px;
-        font-weight: 600;
-        color: #f8fafc;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .user-role {
-        font-size: 11px;
-        color: #38bdf8;
-    }
-
-    .btn-logout {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        width: 100%;
-        padding: 10px;
-        text-align: center;
-        background-color: #ef4444;
-        color: white;
-        text-decoration: none;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 13px;
-        transition: 0.2s;
-    }
-
-    .btn-logout:hover {
-        background-color: #dc2626;
+    .logout-btn:hover {
+        background-color: #7f1d1d !important;
+        color: #ffffff !important;
     }
 </style>
 
-<div class="sidebar">
+<aside class="sidebar-permanen">
+    
+    <!-- HEADER -->
     <div class="sidebar-header">
-        <div class="brand-icon">
-            <img src="/Aplikasi Peminjaman Buku/ASSETS/logoApp.jpg" alt="Logo">
+        <div style="background-color: #3b82f6; color: white; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+            <i class="fas fa-book"></i>
         </div>
-        <div>
-            <h3>Perpustakaan</h3>
-            <small>Panel Admin</small>
+        <div style="overflow: hidden;">
+            <h3 style="color: white; font-size: 15px; font-weight: bold; margin: 0; line-height: 1.2;">Perpustakaan</h3>
+            <span style="color: #38bdf8; font-size: 10px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">Panel Admin</span>
         </div>
     </div>
 
-    <ul class="sidebar-menu">
-        <li>
-            <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/dashboardAdmin.php"
-                class="<?= ($currentPage === 'dashboardAdmin.php') ? 'active' : '' ?>">
-                <span>📊</span> Dashboard
-            </a>
-        </li>
-        <li>
-            <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarPeminjaman.php"
-                class="<?= ($currentPage === 'daftarPeminjaman.php' || $currentPage === 'detailPeminjaman.php') ? 'active' : '' ?>">
-                <span>🔄</span> Kelola Peminjaman
-            </a>
-        </li>
-        <li>
-            <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarBuku.php"
-                class="<?= ($currentPage === 'daftarBuku.php' || $currentPage === 'tambahBuku.php' || $currentPage === 'editBuku.php') ? 'active' : '' ?>">
-                <span>📚</span> Kelola Buku
-            </a>
-        </li>
-        <li>
-            <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarKategori.php"
-                class="<?= ($currentPage === 'daftarKategori.php' || $currentPage === 'tambahKategori.php' || $currentPage === 'editKategori.php') ? 'active' : '' ?>">
-                <span>🏷️</span> Kategori Buku
-            </a>
-        </li>
-        <li>
-            <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarPenerbit.php"
-                class="<?= ($currentPage === 'daftarPenerbit.php' || $currentPage === 'tambahPenerbit.php' || $currentPage === 'editPenerbit.php') ? 'active' : '' ?>">
-                <span>🏢</span> Penerbit
-            </a>
-        </li>
-        <li>
-            <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarPenulis.php"
-                class="<?= ($currentPage === 'daftarPenulis.php' || $currentPage === 'tambahPenulis.php' || $currentPage === 'editPenulis.php') ? 'active' : '' ?>">
-                <span>✍️</span> Penulis
-            </a>
-        </li>
-        <li>
-            <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarUser.php"
-                class="<?= ($currentPage === 'daftarUser.php') ? 'active' : '' ?>">
-                <span>👥</span> Kelola User
-            </a>
-        </li>
-        <li>
-            <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/historiTransaksi.php"
-                class="<?= ($currentPage === 'historiTransaksi.php') ? 'active' : '' ?>">
-                <span>📜</span> Histori Transaksi & Denda
-            </a>
-        </li>
-    </ul>
-
-    <div class="sidebar-footer">
-        <div class="user-info-card">
-            <div class="user-avatar">
-                <?= strtoupper(substr($namaAdmin, 0, 1)) ?>
-            </div>
-            <div class="user-details">
-                <div class="user-name"><?= htmlspecialchars($namaAdmin) ?></div>
-                <div class="user-role">Administrator</div>
-            </div>
-        </div>
-
-        <a href="/Aplikasi Peminjaman Buku/CONTROLLER/c_login.php?aksi=logout"
-            class="btn-logout"
-            onclick="return confirm('Apakah Anda yakin ingin logout?')">
-            🚪 Logout
+    <!-- MENU LIST -->
+    <div class="sidebar-menu-list">
+        <a href="/Aplikasi_Peminjaman_Buku/admin/dashboardAdmin" class="menu-item <?= $aktifDashboard ? 'active' : '' ?>">
+            <i class="fas fa-chart-pie menu-icon"></i> Dashboard
+        </a>
+        
+        <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPeminjaman" class="menu-item <?= $aktifPeminjaman ? 'active' : '' ?>">
+            <i class="fas fa-exchange-alt menu-icon"></i> Kelola Peminjaman
+        </a>
+        
+        <a href="/Aplikasi_Peminjaman_Buku/admin/daftarBuku" class="menu-item <?= $aktifBuku ? 'active' : '' ?>">
+            <i class="fas fa-book menu-icon"></i> Kelola Buku
+        </a>
+        
+        <a href="/Aplikasi_Peminjaman_Buku/admin/daftarKategori" class="menu-item <?= $aktifKategori ? 'active' : '' ?>">
+            <i class="fas fa-tags menu-icon"></i> Kategori Buku
+        </a>
+        
+        <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenerbit" class="menu-item <?= $aktifPenerbit ? 'active' : '' ?>">
+            <i class="fas fa-building menu-icon"></i> Penerbit
+        </a>
+        
+        <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenulis" class="menu-item <?= $aktifPenulis ? 'active' : '' ?>">
+            <i class="fas fa-pen-nib menu-icon"></i> Penulis
+        </a>
+        
+        <a href="/Aplikasi_Peminjaman_Buku/admin/daftarUser" class="menu-item <?= $aktifUser ? 'active' : '' ?>">
+            <i class="fas fa-users menu-icon"></i> Kelola User
+        </a>
+        
+        <a href="/Aplikasi_Peminjaman_Buku/admin/historiTransaksi" class="menu-item <?= $aktifHistori ? 'active' : '' ?>">
+            <i class="fas fa-history menu-icon"></i> Histori Transaksi
         </a>
     </div>
-</div>
+
+    <!-- FOOTER (PROFIL & LOGOUT) -->
+    <div class="sidebar-footer">
+        <div class="profil-box">
+            <div style="background-color: #38bdf8; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; flex-shrink: 0;">
+                <?= strtoupper(substr($namaAdmin, 0, 1)) ?>
+            </div>
+            <div style="overflow: hidden;">
+                <div style="color: white; font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= htmlspecialchars($namaAdmin) ?></div>
+                <div style="color: #38bdf8; font-size: 11px;">Administrator</div>
+            </div>
+        </div>
+        
+        <button onclick="konfirmasiLogout(event)" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+    </div>
+</aside>
+
+<!-- SCRIPT LOGOUT SWEETALERT -->
+<script>
+    function konfirmasiLogout(e) {
+        if (e) e.preventDefault();
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Akhiri Sesi?',
+                text: "Anda akan keluar dari Panel Admin Perpustakaan.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#475569',
+                confirmButtonText: 'Ya, Keluar',
+                cancelButtonText: 'Batal',
+                background: '#1e293b',
+                color: '#f8fafc'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = "/Aplikasi_Peminjaman_Buku/logout";
+                }
+            });
+        } else {
+            if (confirm("Apakah Anda yakin ingin logout?")) {
+                window.location.href = "/Aplikasi_Peminjaman_Buku/logout";
+            }
+        }
+    }
+</script>

@@ -1,13 +1,16 @@
 <?php
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Proteksi Akses Admin
+// Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=dashboard_siswa';
-    header("Location: " . $kembali);
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -25,7 +28,6 @@ $peminjamanModel = new M_Peminjaman();
 $totalBelumKembali = $peminjamanModel->getJumlahBelumKembali();
 
 // Ambil total data untuk ditampilkan di kartu statistik
-// (Gunakan error control operator @ atau null coalescing jika array kosong)
 $totalBuku = count($bukuModel->getAllBuku() ?? []);
 $totalUser = count($userModel->getAll() ?? []);
 $totalPeminjaman = count($peminjamanModel->getSemuaPeminjaman() ?? []);
@@ -41,342 +43,128 @@ $namaAdmin = $_SESSION['nama'] ?? 'Administrator';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Admin - Perpustakaan Online</title>
+
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
-        /* Reset & Base Styles */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        /* 1. Kunci ukuran Layar Utama agar tidak bisa di-scroll ke mana pun */
-        html,
-        body {
-            height: 100vh;
-            width: 100vw;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            /* Mencegah scrollbar utama muncul */
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-        }
-
-        body {
-            display: flex;
-        }
-
-        /* 2. Main Content mengisi sisa area layar tanpa melebihi batas */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-            /* Mengunci konten utama agar tidak keluar layar */
-        }
-
-        /* 3. Container utama dibuat responsif dan hanya konten di dalamnya yang di-scroll jika panjang */
-        .container {
-            padding: 25px;
-            flex: 1;
-            overflow-y: auto;
-            /* Hanya scroll ke bawah jika isi tabel panjang */
-            overflow-x: hidden;
-            /* Hilangkan scroll samping kanan-kiri */
-        }
-
-        /* 4. Card Container */
-        .card {
-            background: #ffffff;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-            width: 100%;
-        }
-
-        /* 5. Mencegah Tabel Memaksa Layar Melebar ke Kanan */
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            /* Scroll horizontal hanya aktif di dalam area tabel saja jika terpaksa */
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            min-width: 100%;
-            /* UBAH min-width: 800px/900px menjadi 100% agar pas dengan card */
-        }
-
-        body {
-            background-color: #f4f7f6;
-            color: #333;
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar Styling */
-        .sidebar {
-            width: 250px;
-            background-color: #2c3e50;
-            color: #ecf0f1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .sidebar-header {
-            padding: 20px;
-            text-align: center;
-            background-color: #1a252f;
-            border-bottom: 1px solid #34495e;
-        }
-
-        .sidebar-header h3 {
-            font-size: 18px;
-            letter-spacing: 1px;
-        }
-
-        .sidebar-menu {
-            list-style: none;
-            padding: 15px 0;
-            flex: 1;
-        }
-
-        .sidebar-menu li a {
-            display: block;
-            padding: 12px 20px;
-            color: #bdc3c7;
-            text-decoration: none;
-            transition: all 0.3s;
-            border-left: 4px solid transparent;
-        }
-
-        .sidebar-menu li a:hover,
-        .sidebar-menu li a.active {
-            background-color: #34495e;
-            color: #fff;
-            border-left: 4px solid #3498db;
-        }
-
-        .sidebar-footer {
-            padding: 15px 20px;
-            background-color: #1a252f;
-        }
-
-        .btn-logout {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            text-align: center;
-            background-color: #e74c3c;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-            transition: 0.3s;
-        }
-
-        .btn-logout:hover {
-            background-color: #c0392b;
-        }
-
-        /* Main Content Styling */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .topbar {
-            background-color: #fff;
-            padding: 15px 30px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .topbar h2 {
-            font-size: 20px;
-            color: #2c3e50;
-        }
-
-        .user-profile {
-            font-size: 14px;
-            color: #7f8c8d;
-        }
-
-        /* Dashboard Container */
-        .content {
-            padding: 30px;
-            flex: 1;
-        }
-
-        /* Stats Cards */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background-color: #fff;
-            padding: 25px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 4px solid #bdc3c7;
-        }
-
-        .stat-card.blue {
-            border-bottom-color: #3498db;
-        }
-
-        .stat-card.green {
-            border-bottom-color: #2ecc71;
-        }
-
-        .stat-card.orange {
-            border-bottom-color: #e67e22;
-        }
-
-        .stat-card.purple {
-            border-bottom-color: #9b59b6;
-        }
-
-        .stat-info h4 {
-            color: #7f8c8d;
-            font-size: 14px;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-
-        .stat-info h1 {
-            color: #2c3e50;
-            font-size: 28px;
-        }
-
-        .stat-icon {
-            font-size: 35px;
-            opacity: 0.7;
-        }
-
-        /* Quick Action Section */
-        .quick-actions h3 {
-            margin-bottom: 15px;
-            color: #2c3e50;
-        }
-
-        .action-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 15px;
-        }
-
-        .action-card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            text-decoration: none;
-            color: #333;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            transition: 0.3s;
-            border: 1px solid #eee;
-        }
-
-        .action-card:hover {
-            transform: translateY(-3px);
-            border-color: #3498db;
-            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.15);
-        }
-
-        .action-card h4 {
-            color: #2980b9;
-            margin-bottom: 5px;
-        }
-
-        .action-card p {
-            font-size: 13px;
-            color: #7f8c8d;
-        }
+        body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
 
-<body>
+<body class="bg-slate-50 flex h-screen overflow-hidden antialiased text-slate-800">
 
     <?php include __DIR__ . "/../TEMPLATE/SideBarAdmin.php"; ?>
 
     <!-- MAIN CONTENT -->
-    <div class="main-content">
+    <div class="flex-1 flex flex-col h-screen overflow-hidden">
+        
         <!-- TOPBAR -->
-        <div class="topbar">
-            <h2>Dashboard</h2>
-            <div class="user-profile">
-                Halo, <strong><?= htmlspecialchars($namaAdmin) ?></strong> (Admin)
+        <div class="bg-white/80 backdrop-blur-md px-8 py-4 flex justify-between items-center shadow-sm border-b border-slate-200 z-10">
+            <div>
+                <h2 class="text-xl font-bold text-slate-800">Dashboard</h2>
+                <p class="text-sm text-slate-500">Ringkasan aktivitas perpustakaan hari ini</p>
+            </div>
+            <div class="hidden md:flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-200">
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span class="text-sm font-medium text-slate-600">Halo, <strong class="text-blue-600"><?= htmlspecialchars($namaAdmin) ?></strong></span>
             </div>
         </div>
 
         <!-- CONTENT -->
-        <div class="content">
+        <div class="p-8 flex-1 overflow-y-auto">
 
             <!-- STATS CARDS -->
-            <div class="stats-grid">
-                <div class="stat-card blue">
-                    <div class="stat-info">
-                        <h4>Total Buku</h4>
-                        <h1><?= $totalBuku ?></h1>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!-- Card 1 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-b-4 border-b-blue-500 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-blue-500/10 group">
+                    <div>
+                        <h4 class="text-sm font-semibold text-slate-500 mb-1">Total Buku</h4>
+                        <h1 class="text-3xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors"><?= $totalBuku ?></h1>
                     </div>
-                    <div class="stat-icon">📚</div>
+                    <div class="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 text-2xl group-hover:scale-110 transition-transform">
+                        <i class="fas fa-book"></i>
+                    </div>
                 </div>
 
-                <div class="stat-card green">
-                    <div class="stat-info">
-                        <h4>Pengguna Aktif</h4>
-                        <h1><?= $totalUser ?></h1>
+                <!-- Card 2 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-b-4 border-b-green-500 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-green-500/10 group">
+                    <div>
+                        <h4 class="text-sm font-semibold text-slate-500 mb-1">Pengguna Aktif</h4>
+                        <h1 class="text-3xl font-bold text-slate-800 group-hover:text-green-600 transition-colors"><?= $totalUser ?></h1>
                     </div>
-                    <div class="stat-icon">👥</div>
+                    <div class="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center text-green-500 text-2xl group-hover:scale-110 transition-transform">
+                        <i class="fas fa-users"></i>
+                    </div>
                 </div>
 
-                <div class="stat-card orange">
-                    <div class="stat-info">
-                        <h4>Transaksi Peminjaman</h4>
-                        <h1><?= $totalPeminjaman ?></h1>
+                <!-- Card 3 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-b-4 border-b-orange-500 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-orange-500/10 group">
+                    <div>
+                        <h4 class="text-sm font-semibold text-slate-500 mb-1">Total Transaksi</h4>
+                        <h1 class="text-3xl font-bold text-slate-800 group-hover:text-orange-600 transition-colors"><?= $totalPeminjaman ?></h1>
                     </div>
-                    <div class="stat-icon">🔄</div>
+                    <div class="w-14 h-14 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 text-2xl group-hover:scale-110 transition-transform">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
                 </div>
 
-                <div class="stat-card purple">
-                    <div class="stat-info">
-                        <h4>Buku Belum Kembali</h4>
-                        <h1><?= $totalBelumKembali ?></h1> <!-- Nanti bisa dihubungkan ke query spesifik -->
+                <!-- Card 4 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-b-4 border-b-purple-500 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-purple-500/10 group">
+                    <div>
+                        <h4 class="text-sm font-semibold text-slate-500 mb-1">Buku Belum Kembali</h4>
+                        <h1 class="text-3xl font-bold text-slate-800 group-hover:text-purple-600 transition-colors"><?= $totalBelumKembali ?></h1>
                     </div>
-                    <div class="stat-icon">⚠️</div>
+                    <div class="w-14 h-14 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 text-2xl group-hover:scale-110 transition-transform">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
                 </div>
             </div>
 
             <!-- QUICK ACTIONS -->
-            <div class="quick-actions">
-                <h3>Tindakan Cepat</h3>
-                <div class="action-grid">
-                    <a href="tambahBuku.php" class="action-card">
-                        <h4>+ Tambah Buku Baru</h4>
-                        <p>Input data buku baru ke dalam katalog perpustakaan.</p>
+            <div>
+                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fas fa-bolt text-yellow-500"></i> Tindakan Cepat</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <!-- Action 1 -->
+                    <a href="/Aplikasi_Peminjaman_Buku/admin/tambahBuku" class="block bg-white p-6 rounded-2xl border border-slate-200 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-500 hover:shadow-xl hover:shadow-blue-500/10 group">
+                        <div class="flex items-center gap-4 mb-3">
+                            <div class="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">Tambah Buku Baru</h4>
+                        </div>
+                        <p class="text-sm text-slate-500">Input data buku baru beserta cover ke dalam katalog perpustakaan.</p>
                     </a>
-                    <a href="daftarPeminjaman.php" class="action-card">
-                        <h4>Cek Peminjaman Menunggu</h4>
-                        <p>Tinjau dan setujui permintaan peminjaman dari siswa.</p>
+
+                    <!-- Action 2 -->
+                    <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPeminjaman" class="block bg-white p-6 rounded-2xl border border-slate-200 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-orange-500 hover:shadow-xl hover:shadow-orange-500/10 group">
+                        <div class="flex items-center gap-4 mb-3">
+                            <div class="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                                <i class="fas fa-clipboard-check"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-800 group-hover:text-orange-600 transition-colors">Cek Peminjaman</h4>
+                        </div>
+                        <p class="text-sm text-slate-500">Tinjau, setujui permintaan, atau proses pengembalian buku dari siswa.</p>
                     </a>
-                    <a href="tambahUser.php" class="action-card">
-                        <h4>+ Daftarkan User</h4>
-                        <p>Tambahkan akun untuk siswa atau staf guru baru.</p>
+
+                    <!-- Action 3 -->
+                    <a href="/Aplikasi_Peminjaman_Buku/admin/tambahUser" class="block bg-white p-6 rounded-2xl border border-slate-200 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-green-500 hover:shadow-xl hover:shadow-green-500/10 group">
+                        <div class="flex items-center gap-4 mb-3">
+                            <div class="w-10 h-10 rounded-lg bg-green-100 text-green-600 flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition-colors">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-800 group-hover:text-green-600 transition-colors">Daftarkan User</h4>
+                        </div>
+                        <p class="text-sm text-slate-500">Tambahkan akun login baru untuk siswa atau staf guru.</p>
                     </a>
+
                 </div>
             </div>
 
@@ -384,5 +172,4 @@ $namaAdmin = $_SESSION['nama'] ?? 'Administrator';
     </div>
 
 </body>
-
 </html>

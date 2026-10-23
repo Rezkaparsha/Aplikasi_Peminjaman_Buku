@@ -3,9 +3,14 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. Proteksi Akses Admin
+// 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/AUTH/login.php");
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -17,7 +22,8 @@ $idBuku = (int)($_GET['id_buku'] ?? 0);
 
 if ($idBuku <= 0) {
     $_SESSION['error'] = "ID Buku tidak valid.";
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarBuku.php");
+    // Clean URL: Redirect ke Daftar Buku
+    header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarBuku");
     exit;
 }
 
@@ -39,7 +45,8 @@ $dataBuku = $bukuModel->getBukuById($idBuku);
 
 if (!$dataBuku) {
     $_SESSION['error'] = "Data buku tidak ditemukan di database.";
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarBuku.php");
+    // Clean URL: Redirect ke Daftar Buku
+    header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarBuku");
     exit;
 }
 
@@ -73,7 +80,8 @@ if (!empty($penulisTerpilih)) {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        html, body {
+        html,
+        body {
             height: 100vh;
             width: 100vw;
             overflow: hidden;
@@ -289,12 +297,12 @@ if (!empty($penulisTerpilih)) {
                 </div>
 
                 <?php if (!empty($dataBuku)): ?>
-                    <form action="/Aplikasi Peminjaman Buku/CONTROLLER/c_buku.php?aksi=update" method="POST" enctype="multipart/form-data">
+                    <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_buku.php?aksi=update" method="POST" enctype="multipart/form-data">
 
                         <input type="hidden" name="id_buku" value="<?= htmlspecialchars($dataBuku['id_buku']) ?>">
 
                         <div class="form-grid">
-                            
+
                             <!-- KOLOM KIRI -->
                             <div class="form-group full-width">
                                 <label for="judul_buku">Judul Buku</label>
@@ -368,7 +376,7 @@ if (!empty($penulisTerpilih)) {
                                 <label>Cover Saat Ini</label>
                                 <div class="cover-preview-wrapper">
                                     <?php if (!empty($dataBuku['cover'])): ?>
-                                        <img src="/Aplikasi Peminjaman Buku/ASSETS/COVER/<?= htmlspecialchars($dataBuku['cover']) ?>" alt="Cover Buku" class="current-cover">
+                                        <img src="/Aplikasi_Peminjaman_Buku/ASSETS/COVER/<?= htmlspecialchars($dataBuku['cover']) ?>" alt="Cover Buku" class="current-cover">
                                         <span style="font-size: 13px; color: #2c3e50;"><?= htmlspecialchars($dataBuku['cover']) ?></span>
                                     <?php else: ?>
                                         <span class="help-text">Belum ada cover terpasang.</span>
@@ -379,7 +387,8 @@ if (!empty($penulisTerpilih)) {
                         </div>
 
                         <div class="action-group">
-                            <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarBuku.php" class="btn btn-cancel">Batal</a>
+                            <!-- CLEAN URL: Kembali ke Daftar Buku -->
+                            <a href="/Aplikasi_Peminjaman_Buku/admin/daftarBuku" class="btn btn-cancel">Batal</a>
                             <button type="submit" class="btn btn-submit">Simpan Perubahan</button>
                         </div>
 
@@ -387,13 +396,12 @@ if (!empty($penulisTerpilih)) {
                 <?php else: ?>
                     <div class="alert-error">Data buku tidak ditemukan.</div>
                     <div style="text-align: center; margin-top: 20px;">
-                        <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarBuku.php" class="btn btn-cancel">Kembali ke Daftar Buku</a>
+                        <!-- CLEAN URL: Kembali ke Daftar Buku -->
+                        <a href="/Aplikasi_Peminjaman_Buku/admin/daftarBuku" class="btn btn-cancel">Kembali ke Daftar Buku</a>
                     </div>
                 <?php endif; ?>
             </div>
         </div>
     </div>
-
 </body>
-
 </html>

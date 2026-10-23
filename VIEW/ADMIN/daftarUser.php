@@ -3,19 +3,36 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. Proteksi Akses Admin: Arahkan ke login utama jika tidak ada session admin
+// 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/AUTH/login.php");
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
 // 2. Simpan URL lokasi halaman view ini
 $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
-// 3. Panggil Model Users Langsung di View
+// 3. Panggil Model Users
 require_once __DIR__ . "/../../MODEL/m_users.php";
 $userModel = new Users();
-$daftarUser = $userModel->getAll();
+
+// ==========================================
+// LOGIKA PENCARIAN & AMBIL DATA
+// ==========================================
+$keyword = trim($_GET['search'] ?? '');
+
+if (!empty($keyword)) {
+    // Gunakan fungsi search jika ada inputan pencarian
+    $daftarUser = $userModel->search($keyword);
+} else {
+    // Gunakan getAll jika tidak ada pencarian
+    $daftarUser = $userModel->getAll();
+}
 
 // ==========================================
 // LOGIKA PAGINATION (10 Data per Halaman)
@@ -32,6 +49,9 @@ $offset = ($page - 1) * $limit;
 
 // Potong array data sesuai halaman aktif
 $userPaginated = array_slice($daftarUser, $offset, $limit);
+
+// Fungsi untuk menyambungkan query string search pada pagination
+$searchQuery = !empty($keyword) ? '&search=' . urlencode($keyword) : '';
 ?>
 
 <!DOCTYPE html>
@@ -41,430 +61,225 @@ $userPaginated = array_slice($daftarUser, $offset, $limit);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daftar User - Perpustakaan Online</title>
-    <style>
-        /* Reset & Base Styles */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        /* 1. Kunci ukuran Layar Utama agar tidak bisa di-scroll ke mana pun */
-        html,
-        body {
-            height: 100vh;
-            width: 100vw;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            /* Mencegah scrollbar utama muncul */
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-        }
-
-        body {
-            display: flex;
-        }
-
-        /* 2. Main Content mengisi sisa area layar tanpa melebihi batas */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-            /* Mengunci konten utama agar tidak keluar layar */
-        }
-
-        /* 3. Container utama dibuat responsif dan hanya konten di dalamnya yang di-scroll jika panjang */
-        .container {
-            padding: 25px;
-            flex: 1;
-            overflow-y: auto;
-            /* Hanya scroll ke bawah jika isi tabel panjang */
-            overflow-x: hidden;
-            /* Hilangkan scroll samping kanan-kiri */
-        }
-
-        /* 4. Card Container */
-        .card {
-            background: #ffffff;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-            width: 100%;
-        }
-
-        /* 5. Mencegah Tabel Memaksa Layar Melebar ke Kanan */
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            /* Scroll horizontal hanya aktif di dalam area tabel saja jika terpaksa */
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            min-width: 100%;
-            /* UBAH min-width: 800px/900px menjadi 100% agar pas dengan card */
-        }
-
-        body {
-            background-color: #f4f7f6;
-            color: #333;
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Main Content Layout */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .topbar {
-            background-color: #fff;
-            padding: 15px 30px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .topbar h2 {
-            font-size: 20px;
-            color: #2c3e50;
-        }
-
-        .container {
-            padding: 30px;
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        /* Card Container */
-        .card {
-            background: #ffffff;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #ecf0f1;
-            padding-bottom: 15px;
-        }
-
-        .page-header h3 {
-            color: #2c3e50;
-            font-size: 22px;
-        }
-
-        .page-header p {
-            color: #7f8c8d;
-            font-size: 13px;
-            margin-top: 4px;
-        }
-
-        /* Buttons */
-        .btn {
-            padding: 10px 18px;
-            border-radius: 5px;
-            font-size: 14px;
-            font-weight: bold;
-            text-decoration: none;
-            cursor: pointer;
-            transition: background 0.3s ease;
-            display: inline-block;
-            text-align: center;
-        }
-
-        .btn-primary {
-            background-color: #2ecc71;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: #27ae60;
-        }
-
-        .btn-edit {
-            background-color: #3498db;
-            color: white;
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-
-        .btn-edit:hover {
-            background-color: #2980b9;
-        }
-
-        .btn-delete {
-            background-color: #e74c3c;
-            color: white;
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-
-        .btn-delete:hover {
-            background-color: #c0392b;
-        }
-
-        .action-group {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
-
-        /* Table Styling */
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            min-width: 800px;
-        }
-
-        .data-table th,
-        .data-table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ecf0f1;
-            font-size: 13px;
-        }
-
-        .data-table th {
-            background-color: #f8f9fa;
-            color: #2c3e50;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 12px;
-            white-space: nowrap;
-        }
-
-        .data-table tr:hover {
-            background-color: #fcfcfc;
-        }
-
-        /* Role Badges */
-        .badge {
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            color: white;
-            text-transform: capitalize;
-            display: inline-block;
-            text-align: center;
-        }
-
-        .badge-admin {
-            background-color: #e74c3c;
-        }
-
-        .badge-siswa {
-            background-color: #3498db;
-        }
-
-        .badge-guru {
-            background-color: #f1c40f;
-            color: #333;
-        }
-
-        .badge-default {
-            background-color: #95a5a6;
-        }
-
-        .text-center {
-            text-align: center;
-            color: #7f8c8d;
-            padding: 30px;
-        }
-
-        .table-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 20px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .total-data {
-            font-size: 14px;
-            color: #7f8c8d;
-        }
-
-        /* Pagination Styling */
-        .pagination {
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            list-style: none;
-            gap: 5px;
-        }
-
-        .pagination a {
-            padding: 8px 12px;
-            text-decoration: none;
-            background-color: #f8f9fa;
-            color: #2c3e50;
-            border: 1px solid #ccd1d1;
-            border-radius: 4px;
-            font-size: 13px;
-            transition: 0.3s;
-        }
-
-        .pagination a.active {
-            background-color: #2ecc71;
-            color: white;
-            border-color: #2ecc71;
-        }
-
-        .pagination a:hover:not(.active) {
-            background-color: #ecf0f1;
-        }
-    </style>
+    
+    <!-- ASSETS PENDUKUNG -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
-<body>
+<body class="flex h-screen bg-slate-50 font-sans text-slate-800 antialiased overflow-hidden">
 
     <!-- Sidebar Admin -->
     <?php include __DIR__ . "/../TEMPLATE/SideBarAdmin.php"; ?>
 
-    <div class="main-content">
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+        
         <!-- Topbar -->
-        <div class="topbar">
-            <h2>Kelola Data User</h2>
-            <div style="font-size: 14px; color: #7f8c8d;">Panel Admin</div>
-        </div>
+        <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm shrink-0">
+            <div>
+                <h2 class="text-xl font-bold text-slate-800">Kelola Data User</h2>
+                <div class="text-xs text-sky-500 font-semibold tracking-wider uppercase mt-0.5">Panel Admin</div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+            </div>
+        </header>
 
-        <!-- Main Container -->
-        <div class="container">
-            <div class="card">
+        <!-- Container (Scrollable) -->
+        <main class="flex-1 overflow-y-auto p-6">
+            
+            <!-- ALERT NOTIFIKASI -->
+            <?php if (isset($_SESSION['error'])): ?>
+                <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg flex items-center gap-3 shadow-sm">
+                    <div class="text-red-500"><i class="fas fa-exclamation-circle text-xl"></i></div>
+                    <div class="text-red-700 font-medium text-sm"><?= htmlspecialchars($_SESSION['error']) ?></div>
+                </div>
+                <?php unset($_SESSION['error']); ?>
+            <?php endif; ?>
 
-                <div class="page-header">
+            <?php if (isset($_SESSION['success'])): ?>
+                <div class="mb-6 bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-lg flex items-center gap-3 shadow-sm">
+                    <div class="text-emerald-500"><i class="fas fa-check-circle text-xl"></i></div>
+                    <div class="text-emerald-700 font-medium text-sm"><?= htmlspecialchars($_SESSION['success']) ?></div>
+                </div>
+                <?php unset($_SESSION['success']); ?>
+            <?php endif; ?>
+
+            <!-- Card Utama -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200">
+                
+                <!-- Header Card (Pencarian & Tombol Tambah) -->
+                <div class="p-6 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                     <div>
-                        <h3>Daftar Pengguna Sistem</h3>
-                        <p>Kelola data akun siswa, guru, dan admin yang memiliki akses ke aplikasi perpustakaan.</p>
+                        <h3 class="text-lg font-bold text-slate-800">Daftar Pengguna Sistem</h3>
+                        <p class="text-sm text-slate-500 mt-1">Kelola data akun siswa, guru, dan admin yang memiliki akses ke aplikasi.</p>
                     </div>
-                    <div>
-                        <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/tambahUser.php" class="btn btn-primary">+ Tambah User</a>
+                    
+                    <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                        <!-- Form Pencarian -->
+                        <form action="" method="GET" class="flex items-center relative w-full lg:w-64">
+                            <i class="fas fa-search absolute left-3 text-slate-400 text-sm"></i>
+                            <input type="text" name="search" value="<?= htmlspecialchars($keyword) ?>" placeholder="Cari NIS/Nama/Username..." 
+                                class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all">
+                            
+                            <!-- Tombol Reset Pencarian (Muncul jika ada pencarian) -->
+                            <?php if (!empty($keyword)): ?>
+                                <a href="?" class="absolute right-3 text-slate-400 hover:text-red-500 transition-colors">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            <?php endif; ?>
+                        </form>
+                        <button type="button" onclick="document.querySelector('form').submit()" class="hidden"></button>
+
+                        <!-- Tombol Tambah User -->
+                        <a href="/Aplikasi_Peminjaman_Buku/admin/tambahUser" class="whitespace-nowrap px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-sm shadow-blue-600/20 transition-all flex items-center gap-2">
+                            <i class="fas fa-plus"></i> Tambah User
+                        </a>
                     </div>
                 </div>
 
-                <!-- ALERT NOTIFIKASI SEMENTARA -->
-                <?php if (isset($_SESSION['error'])): ?>
-                    <div style="background-color: #fdeaea; color: #c0392b; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; border-left: 4px solid #e74c3c; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 10px;">
-                        <span>⚠️</span>
-                        <div><?= $_SESSION['error']; ?></div>
-                    </div>
-                    <?php unset($_SESSION['error']); ?>
-                <?php endif; ?>
-
-                <?php if (isset($_SESSION['success'])): ?>
-                    <div style="background-color: #e8f8f5; color: #27ae60; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; border-left: 4px solid #2ecc71; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 10px;">
-                        <span>✅</span>
-                        <div><?= $_SESSION['success']; ?></div>
-                    </div>
-                    <?php unset($_SESSION['success']); ?>
-                <?php endif; ?>
-
-                <div class="table-responsive">
-                    <table class="data-table">
+                <!-- Tabel Data -->
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
-                            <tr>
-                                <th style="width: 5%;">No</th>
-                                <th style="width: 15%;">NIS/NIP</th>
-                                <th style="width: 25%;">Nama Lengkap</th>
-                                <th style="width: 15%;">Kelas</th>
-                                <th style="width: 20%;">Username</th>
-                                <th style="width: 10%;">Role</th>
-                                <th style="width: 10%;">Aksi</th>
+                            <tr class="bg-slate-50/50 text-slate-500 text-[11px] uppercase tracking-wider border-b border-slate-200">
+                                <th class="px-6 py-4 font-semibold w-16 text-center">No</th>
+                                <th class="px-6 py-4 font-semibold">NIS/NIP</th>
+                                <th class="px-6 py-4 font-semibold">Nama Lengkap</th>
+                                <th class="px-6 py-4 font-semibold">Kelas</th>
+                                <th class="px-6 py-4 font-semibold">Username</th>
+                                <th class="px-6 py-4 font-semibold text-center">Role</th>
+                                <th class="px-6 py-4 font-semibold text-center w-32">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="divide-y divide-slate-100 text-sm">
                             <?php if (!empty($userPaginated)): ?>
                                 <?php $no = $offset + 1; ?>
                                 <?php foreach ($userPaginated as $user): ?>
-                                    <tr>
-                                        <td><?= $no++ ?></td>
-                                        <td><strong><?= htmlspecialchars($user['nis_nip'] ?? '-') ?></strong></td>
-                                        <td style="color: #2c3e50; font-weight: 500;"><?= htmlspecialchars($user['nama_lengkap']) ?></td>
-                                        <td><?= htmlspecialchars($user['kelas'] ?? '-') ?></td>
-                                        <td><?= htmlspecialchars($user['username']) ?></td>
-                                        <td>
+                                    <tr class="hover:bg-slate-50/70 transition-colors">
+                                        <td class="px-6 py-4 text-center text-slate-500"><?= $no++ ?></td>
+                                        <td class="px-6 py-4 font-bold text-slate-700"><?= htmlspecialchars($user['nis_nip'] ?? '-') ?></td>
+                                        <td class="px-6 py-4 text-slate-600 font-medium"><?= htmlspecialchars($user['nama_lengkap']) ?></td>
+                                        <td class="px-6 py-4 text-slate-500"><?= htmlspecialchars($user['kelas'] ?? '-') ?></td>
+                                        <td class="px-6 py-4 text-slate-500"><?= htmlspecialchars($user['username']) ?></td>
+                                        <td class="px-6 py-4 text-center">
                                             <?php
-                                            $roleClass = 'badge-default';
-                                            if (strtolower($user['role']) === 'admin') $roleClass = 'badge-admin';
-                                            elseif (strtolower($user['role']) === 'siswa') $roleClass = 'badge-siswa';
-                                            elseif (strtolower($user['role']) === 'guru') $roleClass = 'badge-guru';
+                                                // Tentukan warna badge berdasarkan role
+                                                $role = strtolower($user['role']);
+                                                $badgeClass = 'bg-slate-100 text-slate-600';
+                                                
+                                                if ($role === 'admin') {
+                                                    $badgeClass = 'bg-red-100 text-red-600';
+                                                } elseif ($role === 'siswa') {
+                                                    $badgeClass = 'bg-blue-100 text-blue-600';
+                                                } elseif ($role === 'guru') {
+                                                    $badgeClass = 'bg-amber-100 text-amber-700';
+                                                }
                                             ?>
-                                            <span class="badge <?= $roleClass ?>">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider <?= $badgeClass ?>">
                                                 <?= htmlspecialchars($user['role']) ?>
                                             </span>
                                         </td>
-                                        <td>
-                                            <div class="action-group">
-                                                <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/editUser.php?id_user=<?= $user['id_user'] ?>" class="btn btn-edit">Edit</a>
-                                                <a href="/Aplikasi Peminjaman Buku/CONTROLLER/c_user.php?aksi=hapus&id_user=<?= $user['id_user'] ?>" class="btn btn-delete" onclick="return confirm('Yakin ingin menghapus user ini?')">Hapus</a>
+                                        <td class="px-6 py-4">
+                                            <!-- MENGHILANGKAN EFEK DISEMBUNYIKAN AGAR TOMBOL SELALU MUNCUL -->
+                                            <div class="flex items-center justify-center gap-2">
+                                                <!-- Tombol Edit -->
+                                                <a href="/Aplikasi_Peminjaman_Buku/admin/editUser?id_user=<?= $user['id_user'] ?>" 
+                                                   class="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-colors border border-emerald-100" title="Edit Data">
+                                                    <i class="fas fa-edit text-sm"></i>
+                                                </a>
+                                                <!-- Tombol Hapus -->
+                                                <button type="button" onclick="konfirmasiHapus(<?= $user['id_user'] ?>)" 
+                                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition-colors border border-red-100" title="Hapus Data">
+                                                    <i class="fas fa-trash-alt text-sm"></i>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="7" class="text-center">Belum ada user terdaftar.</td>
+                                    <td colspan="7" class="px-6 py-12 text-center text-slate-400">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <i class="fas fa-folder-open text-4xl mb-3 text-slate-300"></i>
+                                            <p class="font-medium">Tidak ada data pengguna ditemukan.</p>
+                                            <?php if (!empty($keyword)): ?>
+                                                <p class="text-xs mt-1">Coba gunakan kata kunci lain untuk mencari.</p>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
 
+                <!-- Footer Card (Informasi Data & Pagination) -->
                 <?php if (!empty($daftarUser)): ?>
-                    <div class="table-footer">
-                        <p class="total-data">Menampilkan <strong><?= count($userPaginated) ?></strong> dari <strong><?= $total_data ?></strong> total pengguna</p>
+                    <div class="p-5 border-t border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between items-center gap-4 rounded-b-2xl">
+                        <div class="text-sm text-slate-500">
+                            Menampilkan <span class="font-bold text-slate-700"><?= count($userPaginated) ?></span> dari <span class="font-bold text-slate-700"><?= $total_data ?></span> total pengguna
+                        </div>
 
-                        <!-- KONTROL PAGINATION -->
+                        <!-- Kontrol Pagination -->
                         <?php if ($total_pages > 1): ?>
-                            <ul class="pagination">
+                            <div class="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                                <!-- Tombol Prev -->
                                 <?php if ($page > 1): ?>
-                                    <li><a href="?page=<?= $page - 1 ?>">« Prev</a></li>
+                                    <a href="?page=<?= $page - 1 ?><?= $searchQuery ?>" class="px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">Prev</a>
+                                <?php else: ?>
+                                    <span class="px-3 py-1.5 text-sm font-medium text-slate-300 cursor-not-allowed">Prev</span>
                                 <?php endif; ?>
 
+                                <!-- Angka Halaman -->
                                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                                    <li>
-                                        <a href="?page=<?= $i ?>" class="<?= ($i === $page) ? 'active' : '' ?>">
-                                            <?= $i ?>
-                                        </a>
-                                    </li>
+                                    <?php if ($i === $page): ?>
+                                        <span class="px-3 py-1.5 text-sm font-bold bg-blue-600 text-white rounded-md shadow-sm"><?= $i ?></span>
+                                    <?php else: ?>
+                                        <a href="?page=<?= $i ?><?= $searchQuery ?>" class="px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-md transition-colors"><?= $i ?></a>
+                                    <?php endif; ?>
                                 <?php endfor; ?>
 
+                                <!-- Tombol Next -->
                                 <?php if ($page < $total_pages): ?>
-                                    <li><a href="?page=<?= $page + 1 ?>">Next »</a></li>
+                                    <a href="?page=<?= $page + 1 ?><?= $searchQuery ?>" class="px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">Next</a>
+                                <?php else: ?>
+                                    <span class="px-3 py-1.5 text-sm font-medium text-slate-300 cursor-not-allowed">Next</span>
                                 <?php endif; ?>
-                            </ul>
+                            </div>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
 
             </div>
-        </div>
+        </main>
     </div>
 
-</body>
+    <!-- Script SweetAlert2 untuk Konfirmasi Hapus -->
+    <script>
+        function konfirmasiHapus(id_user) {
+            Swal.fire({
+                title: 'Hapus User?',
+                text: "Data user ini akan dihapus permanen. Tindakan ini tidak dapat dibatalkan!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: '<i class="fas fa-trash-alt mr-1"></i> Ya, Hapus',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                borderRadius: '1rem'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = "/Aplikasi_Peminjaman_Buku/CONTROLLER/c_user.php?aksi=hapus&id_user=" + id_user;
+                }
+            });
+        }
+    </script>
 
+</body>
 </html>

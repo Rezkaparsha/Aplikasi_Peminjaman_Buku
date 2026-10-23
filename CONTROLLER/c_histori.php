@@ -1,174 +1,42 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-require_once __DIR__ . "/m_koneksi.php";
+require_once __DIR__ . "/../MODEL/m_histori_transaksi.php";
 
-class Penerbit
-{
-    private $koneksi;
+class C_Histori {
+    private $historiModel;
 
-    public $id_penerbit;
-    public $nama_penerbit;
-    public $alamat;
-    public $kota;
-    public $telepon;
-    public $email;
-
-    public function __construct()
-    {
-        $db = new Koneksi();
-        $this->koneksi = $db->getKoneksi();
+    public function __construct() {
+        // Proteksi Akses Admin
+        if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
+            header("Location: /Aplikasi_Peminjaman_Buku/VIEW/AUTH/login.php");
+            exit;
+        }
+        // Simpan URL halaman admin terakhir
+        $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
+        
+        $this->historiModel = new HistoriTransaksi();
     }
 
-    // AMBIL SEMUA PENERBIT
-    public function getAll()
-    {
-        $query = "
-            SELECT
-                id_penerbit,
-                nama_penerbit,
-                alamat,
-                kota,
-                telepon,
-                email
-            FROM penerbit
-            ORDER BY nama_penerbit ASC
-        ";
+    public function index() {
+        // Ambil data histori transaksi dari database
+        $daftarHistori = $this->historiModel->getAll(); 
 
-        $result = $this->koneksi->query($query);
-        $data = [];
-
-        if ($result) {
-            while ($row = $result->fetch_assoc()) {
-                $data[] = $row;
-            }
-        }
-
-        return $data;
+        // Panggil View Histori Transaksi Admin
+        require_once __DIR__ . "/../VIEW/ADMIN/historiTransaksi.php";
+        exit;
     }
+}
 
-    // AMBIL PENERBIT BERDASARKAN ID
-    public function getById($id_penerbit)
-    {
-        $stmt = $this->koneksi->prepare("
-            SELECT
-                id_penerbit,
-                nama_penerbit,
-                alamat,
-                kota,
-                telepon,
-                email
-            FROM penerbit
-            WHERE id_penerbit = ?
-        ");
+// Inisialisasi dan jalankan aksi berdasarkan parameter GET
+$controller = new C_Histori();
+$aksi = $_GET['aksi'] ?? 'index';
 
-        if (!$stmt) {
-            return null;
-        }
-
-        $stmt->bind_param("i", $id_penerbit);
-        $stmt->execute();
-
-        $result = $stmt->get_result();
-        $data = $result->fetch_assoc();
-
-        $stmt->close();
-
-        return $data;
-    }
-
-    // TAMBAH PENERBIT
-    public function insert()
-    {
-        $stmt = $this->koneksi->prepare("
-            INSERT INTO penerbit
-            (
-                nama_penerbit,
-                alamat,
-                kota,
-                telepon,
-                email
-            )
-            VALUES (?, ?, ?, ?, ?)
-        ");
-
-        if (!$stmt) {
-            return false;
-        }
-
-        $stmt->bind_param(
-            "sssss",
-            $this->nama_penerbit,
-            $this->alamat,
-            $this->kota,
-            $this->telepon,
-            $this->email
-        );
-
-        $hasil = $stmt->execute();
-
-        if ($hasil) {
-            $this->id_penerbit = $stmt->insert_id;
-        }
-
-        $stmt->close();
-
-        return $hasil;
-    }
-
-    // UPDATE PENERBIT
-    public function update()
-    {
-        $stmt = $this->koneksi->prepare("
-            UPDATE penerbit
-            SET
-                nama_penerbit = ?,
-                alamat = ?,
-                kota = ?,
-                telepon = ?,
-                email = ?
-            WHERE id_penerbit = ?
-        ");
-
-        if (!$stmt) {
-            return false;
-        }
-
-        $stmt->bind_param(
-            "sssssi",
-            $this->nama_penerbit,
-            $this->alamat,
-            $this->kota,
-            $this->telepon,
-            $this->email,
-            $this->id_penerbit
-        );
-
-        $hasil = $stmt->execute();
-
-        $stmt->close();
-
-        return $hasil;
-    }
-
-    // HAPUS PENERBIT
-    public function delete($id_penerbit)
-    {
-        $stmt = $this->koneksi->prepare("
-            DELETE FROM penerbit
-            WHERE id_penerbit = ?
-        ");
-
-        if (!$stmt) {
-            return false;
-        }
-
-        $stmt->bind_param("i", $id_penerbit);
-
-        $hasil = $stmt->execute();
-
-        $stmt->close();
-
-        return $hasil;
-    }
+if (method_exists($controller, $aksi)) {
+    $controller->$aksi();
+} else {
+    $controller->index();
 }
 ?>

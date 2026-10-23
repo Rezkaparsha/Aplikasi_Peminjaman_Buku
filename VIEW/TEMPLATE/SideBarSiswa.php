@@ -1,15 +1,13 @@
 <?php
-// Pastikan session sudah berjalan
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Ambil data nama/user jika tersedia
 $namaSiswa = $_SESSION['nama_lengkap'] ?? $_SESSION['nama'] ?? 'Siswa Perpustakaan';
 $nisSiswa  = $_SESSION['nis_nip'] ?? $_SESSION['nis'] ?? '-';
 
-// Dapatkan nama file yang sedang diakses untuk menentukan menu aktif (active link)
-$currentPage = basename($_SERVER['PHP_SELF']);
+// Deteksi URL saat ini untuk highlight menu aktif (kompatibel dengan Clean URL)
+$currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 ?>
 
 <!-- FontAwesome Icons -->
@@ -20,11 +18,11 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         width: 280px;
         min-width: 280px;
         min-height: 100vh;
-        background: #1e293b; /* Dark Slate Blue */
+        background: #1e293b;
         color: #f8fafc;
         display: flex;
         flex-direction: column;
-        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
         z-index: 100;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
@@ -38,7 +36,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         gap: 12px;
     }
 
-    /* CONTAINER LOGO BARU */
     .sidebar-siswa .brand-icon {
         width: 45px;
         height: 45px;
@@ -46,13 +43,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         align-items: center;
         justify-content: center;
         border-radius: 10px;
-        background-color: #ffffff; /* Latar belakang putih agar logo menonjol */
-        overflow: hidden; /* Mencegah gambar keluar dari sudut border */
+        background-color: #ffffff;
+        overflow: hidden;
         flex-shrink: 0;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     }
 
-    /* PENGATURAN UKURAN GAMBAR LOGO */
     .sidebar-siswa .brand-icon img {
         width: 100%;
         height: 100%;
@@ -210,10 +206,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 </style>
 
 <div class="sidebar-siswa">
-    <!-- Brand / Logo Aplikasi -->
     <div class="brand-section">
         <div class="brand-icon">
-            <img src="/Aplikasi Peminjaman Buku/ASSETS/logoApp.jpg" alt="Logo Sangkuriang">
+            <img src="/Aplikasi_Peminjaman_Buku/ASSETS/logoApp.jpg" alt="Logo Sangkuriang">
         </div>
         <div class="brand-text">
             <h3>Sangkuriang</h3>
@@ -221,35 +216,34 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </div>
     </div>
 
-    <!-- Menu Navigasi Utama Siswa -->
     <div class="nav-menu">
         <span class="menu-header">Menu Utama</span>
-        
+
         <ul class="sidebar-menu">
             <li>
-                <a href="/Aplikasi Peminjaman Buku/VIEW/SISWA/dashboardSiswa.php" 
-                   class="<?= ($currentPage === 'dashboardSiswa.php') ? 'active' : '' ?>">
+                <a href="/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa"
+                    class="<?= (strpos($currentUri, 'dashboardSiswa') !== false) ? 'active' : '' ?>">
                     <i class="fa-solid fa-house"></i>
                     <span>Dashboard</span>
                 </a>
             </li>
             <li>
-                <a href="/Aplikasi Peminjaman Buku/VIEW/SISWA/daftarBuku.php" 
-                   class="<?= ($currentPage === 'daftarBuku.php') ? 'active' : '' ?>">
+                <a href="/Aplikasi_Peminjaman_Buku/siswa/daftarBuku"
+                    class="<?= (strpos($currentUri, 'daftarBuku') !== false) ? 'active' : '' ?>">
                     <i class="fa-solid fa-book-open"></i>
                     <span>Katalog Buku</span>
                 </a>
             </li>
             <li>
-                <a href="/Aplikasi Peminjaman Buku/VIEW/SISWA/peminjaman.php" 
-                   class="<?= ($currentPage === 'peminjaman.php') ? 'active' : '' ?>">
+                <a href="/Aplikasi_Peminjaman_Buku/siswa/peminjaman"
+                    class="<?= (strpos($currentUri, 'peminjaman') !== false) ? 'active' : '' ?>">
                     <i class="fa-solid fa-bookmark"></i>
                     <span>Peminjaman Saya</span>
                 </a>
             </li>
             <li>
-                <a href="/Aplikasi Peminjaman Buku/VIEW/SISWA/profil.php" 
-                   class="<?= ($currentPage === 'profil.php') ? 'active' : '' ?>">
+                <a href="/Aplikasi_Peminjaman_Buku/siswa/profil"
+                    class="<?= (strpos($currentUri, 'profil') !== false) ? 'active' : '' ?>">
                     <i class="fa-solid fa-user-gear"></i>
                     <span>Profil Saya</span>
                 </a>
@@ -257,7 +251,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </ul>
     </div>
 
-    <!-- Info Profile & Tombol Logout di Footer -->
     <div class="sidebar-footer">
         <div class="user-profile-card">
             <div class="user-avatar">
@@ -273,9 +266,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             </div>
         </div>
 
-        <a href="/Aplikasi Peminjaman Buku/CONTROLLER/c_login.php?aksi=logout" 
-           class="btn-logout" 
-           onclick="return confirm('Apakah Anda yakin ingin keluar dari sistem?')">
+        <a href="/Aplikasi_Peminjaman_Buku/logout"
+            class="btn-logout"
+            onclick="return confirm('Apakah Anda yakin ingin keluar dari sistem?')">
             <i class="fa-solid fa-right-from-bracket"></i>
             <span>Logout</span>
         </a>

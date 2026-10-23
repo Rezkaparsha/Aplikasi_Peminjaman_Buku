@@ -3,9 +3,14 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. Proteksi Akses Admin
+// 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/AUTH/login.php");
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -34,7 +39,7 @@ $id_kategori = $_GET['id_kategori'] ?? '';
 $id_penulis  = $_GET['id_penulis'] ?? '';
 $id_penerbit = $_GET['id_penerbit'] ?? '';
 
-// Eksekusi fungsi pencarian & filter (Pastikan fungsi ini sudah ada di m_buku.php)
+// Eksekusi fungsi pencarian & filter
 $daftarBuku = $bukuModel->cariDanFilterBuku($keyword, $id_kategori, $id_penulis, $id_penerbit);
 
 // ==========================================
@@ -61,343 +66,191 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daftar Buku - Perpustakaan Online</title>
 
-    <!-- SweetAlert2 JS -->
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
-        /* Reset & Base Styles */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        html, body {
-            height: 100vh;
-            width: 100vw;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background-color: #f4f7f6;
-            display: flex;
-        }
-
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .topbar {
-            background-color: #fff;
-            padding: 15px 30px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .topbar h2 {
-            font-size: 20px;
-            color: #2c3e50;
-        }
-
-        .container {
-            padding: 25px;
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-
-        .card {
-            background: #ffffff;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-            width: 100%;
-        }
-
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #ecf0f1;
-            padding-bottom: 15px;
-        }
-
-        .page-header h3 {
-            color: #2c3e50;
-            font-size: 22px;
-        }
-
-        .page-header p {
-            color: #7f8c8d;
-            font-size: 13px;
-            margin-top: 4px;
-        }
-
-        /* Banner Alert Sesuai Desain */
-        .alert-banner {
-            padding: 14px 18px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .alert-banner-error {
-            background-color: #fdeaea;
-            color: #c0392b;
-            border-left: 4px solid #e74c3c;
-        }
-        .alert-banner-success {
-            background-color: #e8f8f5;
-            color: #27ae60;
-            border-left: 4px solid #2ecc71;
-        }
-
-        /* Buttons */
-        .btn {
-            padding: 10px 18px;
-            border-radius: 5px;
-            font-size: 14px;
-            font-weight: bold;
-            text-decoration: none;
-            cursor: pointer;
-            transition: background 0.3s ease;
-            display: inline-block;
-            text-align: center;
-            border: none;
-        }
-        .btn-primary { background-color: #2ecc71; color: white; }
-        .btn-primary:hover { background-color: #27ae60; }
-        .btn-secondary { background-color: #95a5a6; color: white; }
-        .btn-secondary:hover { background-color: #7f8c8d; }
-        .btn-edit { background-color: #3498db; color: white; padding: 6px 12px; font-size: 12px; }
-        .btn-edit:hover { background-color: #2980b9; }
-        .btn-delete { background-color: #e74c3c; color: white; padding: 6px 12px; font-size: 12px; }
-        .btn-delete:hover { background-color: #c0392b; }
-
-        .action-group { display: flex; gap: 5px; flex-wrap: wrap; }
-
-        /* Filter Form */
-        .filter-form {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-            background: #fdfdfd;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #ecf0f1;
-        }
-        .form-control {
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        /* Table Styling */
-        .table-responsive { width: 100%; overflow-x: auto; }
-        .data-table {
-            width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 900px;
-        }
-        .data-table th, .data-table td {
-            padding: 12px 15px; text-align: left; border-bottom: 1px solid #ecf0f1; font-size: 13px;
-        }
-        .data-table th {
-            background-color: #f8f9fa; color: #2c3e50; font-weight: 600; text-transform: uppercase; font-size: 12px; white-space: nowrap;
-        }
-        .data-table tr:hover { background-color: #fcfcfc; }
-
-        .cover-img { border-radius: 4px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); object-fit: cover; width: 50px; height: 70px; }
-        .text-center { text-align: center; color: #7f8c8d; padding: 30px; }
-
-        .table-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-wrap: wrap; gap: 10px; }
-        .total-data { font-size: 14px; color: #7f8c8d; }
-
-        /* Pagination Styling */
-        .pagination { display: flex; justify-content: flex-end; align-items: center; list-style: none; gap: 5px; }
-        .pagination a { padding: 8px 12px; text-decoration: none; background-color: #f8f9fa; color: #2c3e50; border: 1px solid #ccd1d1; border-radius: 4px; font-size: 13px; transition: 0.3s; }
-        .pagination a.active { background-color: #2ecc71; color: white; border-color: #2ecc71; }
-        .pagination a:hover:not(.active) { background-color: #ecf0f1; }
+        body { font-family: 'Inter', sans-serif; }
+        /* Scrollbar Table */
+        .table-scroll::-webkit-scrollbar { height: 8px; }
+        .table-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .table-scroll:hover::-webkit-scrollbar-thumb { background: #94a3b8; }
     </style>
 </head>
 
-<body>
+<body class="bg-slate-50 flex h-screen overflow-hidden antialiased text-slate-800">
 
     <!-- Panggil Sidebar -->
     <?php include __DIR__ . "/../TEMPLATE/SideBarAdmin.php"; ?>
 
-    <div class="main-content">
+    <div class="flex-1 flex flex-col h-screen overflow-hidden">
+        
         <!-- Topbar -->
-        <div class="topbar">
-            <h2>Kelola Buku</h2>
-            <div style="font-size: 14px; color: #7f8c8d;">Panel Admin</div>
+        <div class="bg-white/80 backdrop-blur-md px-8 py-4 flex justify-between items-center shadow-sm border-b border-slate-200 z-10">
+            <div>
+                <h2 class="text-xl font-bold text-slate-800">Kelola Buku</h2>
+                <p class="text-sm text-slate-500">Manajemen katalog buku perpustakaan</p>
+            </div>
+            <div class="hidden md:block">
+                <a href="/Aplikasi_Peminjaman_Buku/admin/tambahBuku" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-lg shadow-blue-500/30 transition-all hover:-translate-y-0.5 flex items-center gap-2">
+                    <i class="fas fa-plus"></i> Tambah Buku
+                </a>
+            </div>
         </div>
 
         <!-- Main Container -->
-        <div class="container">
-            <div class="card">
+        <div class="p-8 flex-1 overflow-y-auto">
+            
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                
+                <!-- FILTER FORM -->
+                <div class="p-6 bg-slate-50/50 border-b border-slate-200">
+                    <form method="GET" action="/Aplikasi_Peminjaman_Buku/admin/daftarBuku" class="flex flex-col md:flex-row gap-4 items-center">
+                        
+                        <div class="relative flex-1 w-full">
+                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" name="keyword" class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="Cari judul buku..." value="<?= htmlspecialchars($_GET['keyword'] ?? '') ?>">
+                        </div>
 
-                <div class="page-header">
-                    <div>
-                        <h3>Koleksi Buku</h3>
-                        <p>Daftar lengkap semua buku yang tersedia di perpustakaan.</p>
-                    </div>
-                    <div>
-                        <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/tambahBuku.php" class="btn btn-primary">+ Tambah Buku</a>
-                    </div>
+                        <select name="id_kategori" class="w-full md:w-auto px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            <option value="">Semua Kategori</option>
+                            <?php foreach ($daftarKategori as$kat): ?>
+                                <option value="<?= $kat['id_kategori'] ?>" <?= (isset($_GET['id_kategori']) && $_GET['id_kategori'] ==$kat['id_kategori']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($kat['nama_kategori']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+
+                        <select name="id_penulis" class="w-full md:w-auto px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            <option value="">Semua Penulis</option>
+                            <?php foreach ($daftarPenulis as$pen): ?>
+                                <option value="<?= $pen['id_penulis'] ?>" <?= (isset($_GET['id_penulis']) && $_GET['id_penulis'] ==$pen['id_penulis']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($pen['nama_penulis']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+
+                        <select name="id_penerbit" class="w-full md:w-auto px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            <option value="">Semua Penerbit</option>
+                            <?php foreach ($daftarPenerbit as$penb): ?>
+                                <option value="<?= $penb['id_penerbit'] ?>" <?= (isset($_GET['id_penerbit']) && $_GET['id_penerbit'] ==$penb['id_penerbit']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($penb['nama_penerbit']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+
+                        <div class="flex gap-2 w-full md:w-auto">
+                            <button type="submit" class="flex-1 md:flex-none px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold rounded-xl transition-all shadow-md">
+                                Filter
+                            </button>
+                            <a href="/Aplikasi_Peminjaman_Buku/admin/daftarBuku" class="flex-1 md:flex-none px-5 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-sm font-semibold rounded-xl transition-all text-center flex items-center justify-center gap-2">
+                                <i class="fas fa-undo"></i>
+                            </a>
+                        </div>
+                    </form>
                 </div>
 
-                <!-- FORM PENCARIAN & FILTER DIPINDAHKAN KELUAR DARI ALERT ERROR -->
-                <form method="GET" action="daftarBuku.php" class="filter-form">
-                    <!-- Input Pencarian Judul -->
-                    <input type="text" name="keyword" class="form-control" placeholder="Cari judul buku..." value="<?= htmlspecialchars($_GET['keyword'] ?? '') ?>" style="flex: 2; min-width: 200px;">
-
-                    <!-- Filter Kategori -->
-                    <select name="id_kategori" class="form-control" style="flex: 1; min-width: 150px;">
-                        <option value="">-- Semua Kategori --</option>
-                        <?php foreach ($daftarKategori as $kat): ?>
-                            <option value="<?= $kat['id_kategori'] ?>" <?= (isset($_GET['id_kategori']) && $_GET['id_kategori'] == $kat['id_kategori']) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($kat['nama_kategori']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <!-- Filter Penulis -->
-                    <select name="id_penulis" class="form-control" style="flex: 1; min-width: 150px;">
-                        <option value="">-- Semua Penulis --</option>
-                        <?php foreach ($daftarPenulis as $pen): ?>
-                            <option value="<?= $pen['id_penulis'] ?>" <?= (isset($_GET['id_penulis']) && $_GET['id_penulis'] == $pen['id_penulis']) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($pen['nama_penulis']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <!-- Filter Penerbit -->
-                    <select name="id_penerbit" class="form-control" style="flex: 1; min-width: 150px;">
-                        <option value="">-- Semua Penerbit --</option>
-                        <?php foreach ($daftarPenerbit as $penb): ?>
-                            <option value="<?= $penb['id_penerbit'] ?>" <?= (isset($_GET['id_penerbit']) && $_GET['id_penerbit'] == $penb['id_penerbit']) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($penb['nama_penerbit']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <button type="submit" class="btn btn-primary">Cari & Filter</button>
-                    <a href="daftarBuku.php" class="btn btn-secondary">Reset</a>
-                </form>
-
-                <!-- ALERT NOTIFIKASI -->
-                <?php if (isset($_SESSION['error'])): ?>
-                    <div class="alert-banner alert-banner-error">
-                        <span>⚠️</span>
-                        <div><?= htmlspecialchars($_SESSION['error']); ?></div>
-                    </div>
-                    <?php unset($_SESSION['error']); ?>
-                <?php endif; ?>
-
-                <?php if (isset($_SESSION['success'])): ?>
-                    <div class="alert-banner alert-banner-success">
-                        <span>✅</span>
-                        <div><?= htmlspecialchars($_SESSION['success']); ?></div>
-                    </div>
-                    <?php unset($_SESSION['success']); ?>
-                <?php endif; ?>
-
-                <div class="table-responsive">
-                    <table class="data-table">
+                <!-- TABLE -->
+                <div class="w-full overflow-x-auto table-scroll">
+                    <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Cover</th>
-                                <th>Judul Buku</th>
-                                <th>Penulis</th>
-                                <th>Penerbit</th>
-                                <th>Tahun</th>
-                                <th>Kategori</th>
-                                <th>Harga</th>
-                                <th>Stok</th>
-                                <th>Aksi</th>
+                            <tr class="bg-slate-100/50 text-slate-500 text-xs uppercase tracking-wider font-semibold border-b border-slate-200">
+                                <th class="py-4 px-6 text-center">No</th>
+                                <th class="py-4 px-6">Cover</th>
+                                <th class="py-4 px-6">Judul Buku</th>
+                                <th class="py-4 px-6">Penulis</th>
+                                <th class="py-4 px-6">Penerbit</th>
+                                <th class="py-4 px-6 text-center">Tahun</th>
+                                <th class="py-4 px-6">Kategori</th>
+                                <th class="py-4 px-6 text-right">Harga</th>
+                                <th class="py-4 px-6 text-center">Stok</th>
+                                <th class="py-4 px-6 text-center">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="text-sm divide-y divide-slate-100">
                             <?php if (!empty($bukuPaginated)): ?>
-                                <?php $no = $offset + 1; ?>
-                                <?php foreach ($bukuPaginated as $buku): ?>
-                                    <tr>
-                                        <td><?= $no++ ?></td>
-                                        <td>
+                                <?php $no =$offset + 1; ?>
+                                <?php foreach ($bukuPaginated as$buku): ?>
+                                    <tr class="hover:bg-slate-50/80 transition-colors group">
+                                        <td class="py-3 px-6 text-center font-medium text-slate-500"><?= $no++ ?></td>
+                                        <td class="py-3 px-6">
                                             <?php if (!empty($buku['cover'])): ?>
-                                                <img src="/Aplikasi Peminjaman Buku/ASSETS/COVER/<?= htmlspecialchars($buku['cover']) ?>" alt="Cover" class="cover-img">
+                                                <img src="/Aplikasi_Peminjaman_Buku/ASSETS/COVER/<?= htmlspecialchars($buku['cover']) ?>" class="w-12 h-16 object-cover rounded-md shadow-sm border border-slate-200 group-hover:shadow-md transition-shadow">
                                             <?php else: ?>
-                                                <span style="color: #bdc3c7; font-size: 11px;">No Cover</span>
+                                                <div class="w-12 h-16 bg-slate-100 rounded-md border border-slate-200 flex items-center justify-center text-xs text-slate-400">No Cover</div>
                                             <?php endif; ?>
                                         </td>
-                                        <td style="font-weight: 600; color: #2c3e50;"><?= htmlspecialchars($buku['judul_buku']) ?></td>
-                                        <!-- Menampilkan alias daftar_penulis dari query GROUP_CONCAT di Model -->
-                                        <td><?= htmlspecialchars($buku['daftar_penulis'] ?? ($buku['penulis'] ?? '-')) ?></td>
-                                        <td><?= htmlspecialchars($buku['nama_penerbit'] ?? '-') ?></td>
-                                        <td><?= htmlspecialchars($buku['tahun_terbit'] ?? '-') ?></td>
-                                        <td>
-                                            <span style="background: #ecf0f1; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                                        <td class="py-3 px-6 font-semibold text-slate-800 whitespace-normal min-w-[200px]"><?= htmlspecialchars($buku['judul_buku']) ?></td>
+                                        <td class="py-3 px-6 text-slate-600"><?= htmlspecialchars($buku['daftar_penulis'] ?? ($buku['penulis'] ?? '-')) ?></td>
+                                        <td class="py-3 px-6 text-slate-600"><?= htmlspecialchars($buku['nama_penerbit'] ?? '-') ?></td>
+                                        <td class="py-3 px-6 text-center text-slate-600"><?= htmlspecialchars($buku['tahun_terbit'] ?? '-') ?></td>
+                                        <td class="py-3 px-6">
+                                            <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-semibold border border-blue-100">
                                                 <?= htmlspecialchars($buku['nama_kategori'] ?? '-') ?>
                                             </span>
                                         </td>
-                                        <td style="white-space: nowrap;">Rp <?= number_format((int) $buku['harga_buku'], 0, ',', '.') ?></td>
-                                        <td>
-                                            <strong style="color: <?= (int)$buku['stok'] > 0 ? '#2ecc71' : '#e74c3c' ?>;">
+                                        <td class="py-3 px-6 text-right font-medium text-slate-700">Rp <?= number_format((int) $buku['harga_buku'], 0, ',', '.') ?></td>
+                                        <td class="py-3 px-6 text-center">
+                                            <span class="px-3 py-1 rounded-full text-xs font-bold <?= (int)$buku['stok'] > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' ?>">
                                                 <?= htmlspecialchars($buku['stok']) ?>
-                                            </strong>
+                                            </span>
                                         </td>
-                                        <td>
-                                            <div class="action-group">
-                                                <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/editBuku.php?id_buku=<?= $buku['id_buku'] ?>" class="btn btn-edit">Edit</a>
-                                                <a href="#" onclick="konfirmasiHapus(<?= $buku['id_buku'] ?>)" class="btn btn-delete">Hapus</a>
+                                        <td class="py-3 px-6 text-center">
+                                            <div class="flex justify-center gap-2">
+                                                <a href="/Aplikasi_Peminjaman_Buku/admin/editBuku?id_buku=<?= $buku['id_buku'] ?>" class="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center hover:bg-sky-500 hover:text-white transition-colors" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button onclick="konfirmasiHapus(<?= $buku['id_buku'] ?>)" class="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" title="Hapus">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="10" class="text-center">Belum ada buku dalam koleksi atau tidak ditemukan.</td>
+                                    <td colspan="10" class="py-12 text-center">
+                                        <div class="flex flex-col items-center justify-center text-slate-400">
+                                            <i class="fas fa-box-open text-4xl mb-3"></i>
+                                            <p class="text-sm font-medium">Data buku tidak ditemukan.</p>
+                                        </div>
+                                    </td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
 
+                <!-- PAGINATION -->
                 <?php if (!empty($daftarBuku)): ?>
-                    <div class="table-footer">
-                        <p class="total-data">Menampilkan <strong><?= count($bukuPaginated) ?></strong> dari <strong><?= $total_data ?></strong> total buku</p>
+                    <div class="p-6 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/30">
+                        <p class="text-sm text-slate-500">
+                            Menampilkan <span class="font-semibold text-slate-700"><?= count($bukuPaginated) ?></span> dari <span class="font-semibold text-slate-700"><?= $total_data ?></span> total buku
+                        </p>
 
-                        <!-- KONTROL PAGINATION -->
                         <?php if ($total_pages > 1): ?>
-                            <ul class="pagination">
+                            <div class="flex gap-1">
                                 <?php if ($page > 1): ?>
-                                    <li><a href="?page=<?= $page - 1 ?>">« Prev</a></li>
+                                    <a href="?page=<?= $page - 1 ?>" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-100 transition-colors">Prev</a>
                                 <?php endif; ?>
 
                                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                                    <li>
-                                        <a href="?page=<?= $i ?>" class="<?= ($i === $page) ? 'active' : '' ?>">
-                                            <?= $i ?>
-                                        </a>
-                                    </li>
+                                    <a href="?page=<?= $i ?>" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors <?= ($i ===$page) ? 'bg-blue-600 text-white shadow-md' : 'border border-slate-300 text-slate-600 hover:bg-slate-100' ?>">
+                                        <?= $i ?>
+                                    </a>
                                 <?php endfor; ?>
 
-                                <?php if ($page < $total_pages): ?>
-                                    <li><a href="?page=<?= $page + 1 ?>">Next »</a></li>
+                                <?php if ($page <$total_pages): ?>
+                                    <a href="?page=<?= $page + 1 ?>" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-100 transition-colors">Next</a>
                                 <?php endif; ?>
-                            </ul>
+                            </div>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
@@ -406,21 +259,53 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
         </div>
     </div>
 
-    <!-- JAVASCRIPT SWEETALERT UNTUK KONFIRMASI HAPUS -->
+    <!-- JAVASCRIPT SWEETALERT UNTUK ALERT SESSION & KONFIRMASI HAPUS -->
     <script>
+        // Tangkap Flash Message dari Session PHP menggunakan SweetAlert2 Toast
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
+
+        <?php if (isset($_SESSION['success'])): ?>
+            Toast.fire({
+                icon: 'success',
+                title: '<?= htmlspecialchars($_SESSION['success']); ?>'
+            });
+            <?php unset($_SESSION['success']); ?>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['error'])): ?>
+            Toast.fire({
+                icon: 'error',
+                title: '<?= htmlspecialchars($_SESSION['error']); ?>'
+            });
+            <?php unset($_SESSION['error']); ?>
+        <?php endif; ?>
+
+        // Fungsi Konfirmasi Hapus Modern
         function konfirmasiHapus(id) {
             Swal.fire({
                 title: 'Hapus Buku Ini?',
                 text: "Data buku beserta file cover akan dihapus secara permanen!",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#e74c3c',
-                cancelButtonColor: '#95a5a6',
-                confirmButtonText: 'Ya, Hapus!',
-                cancelButtonText: 'Batal'
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fas fa-trash-alt"></i> Ya, Hapus!',
+                cancelButtonText: 'Batal',
+                background: '#ffffff',
+                backdrop: `rgba(0,0,0,0.4)`,
+                customClass: {
+                    confirmButton: 'rounded-lg',
+                    cancelButton: 'rounded-lg'
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = "/Aplikasi Peminjaman Buku/CONTROLLER/c_buku.php?aksi=hapus&id_buku=" + id;
+                    window.location.href = "/Aplikasi_Peminjaman_Buku/CONTROLLER/c_buku.php?aksi=hapus&id_buku=" + id;
                 }
             });
         }

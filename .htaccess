@@ -1,0 +1,83 @@
+# ----------------------------------------------------------------------
+# 1. SETTING INDEX UTAMA, MENCEGAH DIRECTORY BROWSING & CHARSET
+# ----------------------------------------------------------------------
+DirectoryIndex index.php
+Options -Indexes
+AddDefaultCharset UTF-8
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /Aplikasi_Peminjaman_Buku/
+
+    # Direct Request Root ke index.php
+    RewriteRule ^$ index.php [L]
+
+    # Protect internal directories
+    <FilesMatch "^\.">
+        Require all denied
+    </FilesMatch>
+    RewriteRule ^(DATABASE|MODEL)(/|$) - [F,L]
+
+    # Block execution in ASSETS
+    <FilesMatch "\.(php|php5|php7|phps|phtml)$">
+        <If "%{REQUEST_URI} =~ m#^/Aplikasi_Peminjaman_Buku/ASSETS/#">
+            Require all denied
+        </If>
+    </FilesMatch>
+
+    # Lewati rewriting jika yang diakses adalah file/folder fisik nyata
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # ----------------------------------------------------------------------
+    # AUTH
+    # ----------------------------------------------------------------------
+    RewriteRule ^login$ VIEW/AUTH/login.php [QSA,L]
+    RewriteRule ^register$ VIEW/AUTH/register.php [QSA,L]
+    RewriteRule ^logout$ CONTROLLER/c_login.php?aksi=logout [QSA,L]
+
+    # ----------------------------------------------------------------------
+    # ADMIN
+    # ----------------------------------------------------------------------
+    RewriteRule ^admin/dashboardAdmin$ VIEW/ADMIN/dashboardAdmin.php [QSA,L]
+
+    # User
+    RewriteRule ^admin/daftarUser$ VIEW/ADMIN/daftarUser.php [QSA,L]
+    RewriteRule ^admin/tambahUser$ VIEW/ADMIN/tambahUser.php [QSA,L]
+    RewriteRule ^admin/editUser$ VIEW/ADMIN/editUser.php [QSA,L]
+
+    # Buku
+    RewriteRule ^admin/daftarBuku$ CONTROLLER/c_buku.php?aksi=index [QSA,L]
+    RewriteRule ^admin/tambahBuku$ CONTROLLER/c_buku.php?aksi=tambah_view [QSA,L]
+    RewriteRule ^admin/editBuku$ CONTROLLER/c_buku.php?aksi=edit [QSA,L]
+
+    # Kategori
+    RewriteRule ^admin/daftarKategori$ VIEW/ADMIN/daftarKategori.php [QSA,L]
+    RewriteRule ^admin/tambahKategori$ VIEW/ADMIN/tambahKategori.php [QSA,L]
+    RewriteRule ^admin/editKategori$ VIEW/ADMIN/editKategori.php [QSA,L]
+
+    # Penerbit
+    RewriteRule ^admin/daftarPenerbit$ VIEW/ADMIN/daftarPenerbit.php [QSA,L]
+    RewriteRule ^admin/tambahPenerbit$ VIEW/ADMIN/tambahPenerbit.php [QSA,L]
+    RewriteRule ^admin/editPenerbit$ VIEW/ADMIN/editPenerbit.php [QSA,L]
+
+    # Penulis
+    RewriteRule ^admin/daftarPenulis$ VIEW/ADMIN/daftarPenulis.php [QSA,L]
+    RewriteRule ^admin/tambahPenulis$ VIEW/ADMIN/tambahPenulis.php [QSA,L]
+    RewriteRule ^admin/editPenulis$ VIEW/ADMIN/editPenulis.php [QSA,L]
+
+    # Peminjaman & Histori
+    RewriteRule ^admin/daftarPeminjaman$ CONTROLLER/c_peminjaman.php?aksi=admin [QSA,L]
+    RewriteRule ^admin/detailPeminjaman$ CONTROLLER/c_peminjaman.php?aksi=detailAdmin [QSA,L]
+    RewriteRule ^admin/historiTransaksi$ CONTROLLER/c_histori.php?aksi=index [QSA,L]
+
+    # ----------------------------------------------------------------------
+    # SISWA
+    # ----------------------------------------------------------------------
+    RewriteRule ^siswa/dashboardSiswa$ VIEW/SISWA/dashboardSiswa.php [QSA,L]
+    RewriteRule ^siswa/daftarBuku$ CONTROLLER/c_peminjaman.php?aksi=katalog [QSA,L]
+    RewriteRule ^siswa/peminjaman$ CONTROLLER/c_peminjaman.php?aksi=peminjaman_siswa [QSA,L]
+    RewriteRule ^siswa/detailPeminjaman$ CONTROLLER/c_peminjaman.php?aksi=detail [QSA,L]
+    RewriteRule ^siswa/profil$ VIEW/SISWA/profil.php [QSA,L]
+</IfModule>

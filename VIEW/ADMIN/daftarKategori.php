@@ -3,9 +3,14 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. Proteksi Akses Admin
+// 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/AUTH/login.php");
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -41,7 +46,12 @@ $kategoriPaginated = array_slice($daftarKategori, $offset, $limit);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daftar Kategori - Perpustakaan Online</title>
-
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -300,7 +310,8 @@ $kategoriPaginated = array_slice($daftarKategori, $offset, $limit);
                         <p>Kelola kategori buku yang tersedia di perpustakaan dengan mudah.</p>
                     </div>
                     <div>
-                        <a href="tambahKategori.php" class="btn btn-primary">+ Tambah Kategori</a>
+                        <!-- CLEAN URL: Tambah Kategori -->
+                        <a href="/Aplikasi_Peminjaman_Buku/admin/tambahKategori" class="btn btn-primary">+ Tambah Kategori</a>
                     </div>
                 </div>
 
@@ -342,7 +353,8 @@ $kategoriPaginated = array_slice($daftarKategori, $offset, $limit);
                                         <td><?= htmlspecialchars($kategori['deskripsi'] ?? '-') ?></td>
                                         <td><?= htmlspecialchars($kategori['status'] ?? 'Aktif') ?></td>
                                         <td>
-                                            <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/editKategori.php?id_kategori=<?= $kategori['id_kategori'] ?>" class="btn btn-edit">Edit</a>
+                                            <!-- CLEAN URL: Edit Kategori -->
+                                            <a href="/Aplikasi_Peminjaman_Buku/admin/editKategori?id_kategori=<?= $kategori['id_kategori'] ?>" class="btn btn-edit">Edit</a>
                                             <!-- Tombol Hapus memanggil JS SweetAlert -->
                                             <a href="#" onclick="konfirmasiHapus(<?= $kategori['id_kategori'] ?>)" class="btn btn-delete">Hapus</a>
                                         </td>
@@ -386,7 +398,8 @@ $kategoriPaginated = array_slice($daftarKategori, $offset, $limit);
 
             </div>
 
-            <a href="dashboardAdmin.php" class="btn btn-back">← Kembali ke Dashboard</a>
+            <!-- CLEAN URL: Kembali ke Dashboard -->
+            <a href="/Aplikasi_Peminjaman_Buku/admin/dashboardAdmin" class="btn btn-back">← Kembali ke Dashboard</a>
         </div>
     </div>
 
@@ -404,7 +417,8 @@ $kategoriPaginated = array_slice($daftarKategori, $offset, $limit);
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = "../../CONTROLLER/c_kategori.php?aksi=hapus&id_kategori=" + id;
+                    // Absolute path ke controller hapus agar tidak error dari mana pun dipanggil
+                    window.location.href = "/Aplikasi_Peminjaman_Buku/CONTROLLER/c_kategori.php?aksi=hapus&id_kategori=" + id;
                 }
             });
         }

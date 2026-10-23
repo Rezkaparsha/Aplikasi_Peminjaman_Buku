@@ -3,10 +3,14 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Proteksi Akses Admin
+// Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=dashboard_siswa';
-    header("Location: " . $kembali);
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -22,7 +26,6 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tambah User - Perpustakaan Online</title>
     <style>
-        /* Reset & Base Styles */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -37,7 +40,6 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
             min-height: 100vh;
         }
 
-        /* Main Content Layout */
         .main-content {
             flex: 1;
             display: flex;
@@ -65,7 +67,6 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
             overflow-y: auto;
         }
 
-        /* Card Container */
         .card {
             background: #ffffff;
             padding: 25px;
@@ -85,7 +86,20 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
             font-size: 18px;
         }
 
-        /* Form Layout */
+        /* Tampilan Alert Error */
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #842029;
+            border: 1px solid #f5c2c7;
+            padding: 12px 15px;
+            border-radius: 6px;
+            font-size: 13.5px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
         .form-group {
             margin-bottom: 18px;
         }
@@ -114,7 +128,6 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
             box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
         }
 
-        /* Buttons */
         .action-group {
             display: flex;
             gap: 10px;
@@ -141,6 +154,11 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
         .btn-submit:hover {
             background-color: #27ae60;
+        }
+
+        .btn-submit:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
         }
 
         .btn-cancel {
@@ -174,16 +192,24 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
                     <h3>Formulir Registrasi User</h3>
                 </div>
 
-                <form action="/Aplikasi Peminjaman Buku/CONTROLLER/c_user.php?aksi=tambah" method="POST">
+                <!-- ALERT NOTIFIKASI ERROR -->
+                <?php if (isset($_SESSION['error'])): ?>
+                    <div class="alert-danger">
+                        <span>⚠️ <?= htmlspecialchars($_SESSION['error']) ?></span>
+                    </div>
+                    <?php unset($_SESSION['error']); ?>
+                <?php endif; ?>
+
+                <form id="formTambahUser" action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_user.php?aksi=tambah" method="POST">
 
                     <div class="form-group">
-                        <label for="nis">NIS / NIP</label>
-                        <input type="text" id="nis_nip" name="nis_nip" class="form-control" placeholder="Masukkan NIS atau NIP" required>
+                        <label for="nis_nip">NIS / NIP</label>
+                        <input type="text" id="nis_nip" name="nis_nip" class="form-control" placeholder="Masukkan NIS atau NIP (3-10 digit)" required>
                     </div>
 
                     <div class="form-group">
                         <label for="nama_lengkap">Nama Lengkap</label>
-                        <input type="text" id="nama_lengkap" name="nama_lengkap" class="form-control" placeholder="Masukkan nama lengkap" required>
+                        <input type="text" id="nama_lengkap" name="nama_lengkap" class="form-control" placeholder="Masukkan nama lengkap (huruf saja)" required>
                     </div>
 
                     <div class="form-group">
@@ -211,14 +237,24 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
                     </div>
 
                     <div class="action-group">
-                        <button type="submit" class="btn btn-submit">Simpan User</button>
-                        <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarUser.php" class="btn btn-cancel">Batal</a>
+                        <button type="submit" id="btnSubmit" class="btn btn-submit">Simpan User</button>
+                        <!-- CLEAN URL: Kembali ke Daftar User -->
+                        <a href="/Aplikasi_Peminjaman_Buku/admin/daftarUser" class="btn btn-cancel">Batal</a>
                     </div>
 
                 </form>
             </div>
         </div>
     </div>
+
+    <!-- SCRIPT MENCEGAH SPAM CLICK -->
+    <script>
+        document.getElementById('formTambahUser').addEventListener('submit', function() {
+            var btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerText = 'Menyimpan...';
+        });
+    </script>
 
 </body>
 

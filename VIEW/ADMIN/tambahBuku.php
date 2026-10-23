@@ -1,13 +1,16 @@
 <?php
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Proteksi Akses Admin
+// Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=dashboard_siswa';
-    header("Location: " . $kembali);
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -152,7 +155,7 @@ $dataPenulis = $penulisModel->getAll();
     <div class="container">
         <h2>Tambah Buku Baru</h2>
 
-        <form action="/Aplikasi Peminjaman Buku/CONTROLLER/c_buku.php?aksi=tambah" method="POST" enctype="multipart/form-data">
+        <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_buku.php?aksi=tambah" method="POST" enctype="multipart/form-data">
 
             <div class="form-group">
                 <label for="judul_buku">Judul Buku</label>
@@ -217,7 +220,8 @@ $dataPenulis = $penulisModel->getAll();
             </div>
 
             <div class="action-group">
-                <a href="daftarBuku.php" class="btn btn-cancel">Batal</a>
+                <!-- CLEAN URL: Kembali ke Daftar Buku -->
+                <a href="/Aplikasi_Peminjaman_Buku/admin/daftarBuku" class="btn btn-cancel">Batal</a>
                 <button type="submit" class="btn btn-submit">Simpan Buku</button>
             </div>
 

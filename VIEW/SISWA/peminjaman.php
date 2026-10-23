@@ -5,8 +5,12 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Proteksi Akses Siswa
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'siswa') {
-    $kembali = $_SESSION['last_page_admin'] ?? '/Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=dashboard_admin';
-    header("Location: " . $kembali);
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        $kembali = $_SESSION['last_page_admin'] ?? '/Aplikasi_Peminjaman_Buku/admin/dashboardAdmin';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -345,10 +349,11 @@ $dataPeminjaman = $modelPeminjaman->getPeminjamanByUser($id_user);
                 <!-- Header Judul -->
                 <div class="page-header">
                     <div>
-                        <h3><i class="fa-solid fa-bookmark text-primary me-2"></i>  Peminjaman Saya</h3>
+                        <h3><i class="fa-solid fa-bookmark text-primary me-2"></i> Peminjaman Saya</h3>
                         <p>Pantau status pengajuan serta riwayat transaksi buku perpustakaan Anda.</p>
                     </div>
-                    <a href="/Aplikasi Peminjaman Buku/VIEW/SISWA/daftarBuku.php" class="btn-back">
+                    <!-- CLEAN URL: Kembali ke Katalog Buku -->
+                    <a href="/Aplikasi_Peminjaman_Buku/siswa/daftarBuku" class="btn-back">
                         <i class="fa-solid fa-arrow-left"></i> Kembali ke Katalog Buku
                     </a>
                 </div>
@@ -434,8 +439,8 @@ $dataPeminjaman = $modelPeminjaman->getPeminjamanByUser($id_user);
                                                 </span>
                                             </td>
                                             <td style="text-align: center;">
-                                                <a href="/Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=detail&id_peminjaman=<?= $row['id_peminjaman'] ?>"
-                                                   class="btn-detail">
+                                                <!-- CLEAN URL: Detail Peminjaman -->
+                                                <a href="/Aplikasi_Peminjaman_Buku/siswa/detailPeminjaman?id_peminjaman=<?= $row['id_peminjaman'] ?>" class="btn-detail">
                                                     <i class="fa-solid fa-eye"></i> Detail
                                                 </a>
                                             </td>
@@ -450,7 +455,8 @@ $dataPeminjaman = $modelPeminjaman->getPeminjamanByUser($id_user);
                             <i class="fa-solid fa-folder-open"></i>
                             <h5>Belum Ada Riwayat Peminjaman</h5>
                             <p>Anda belum mengajukan peminjaman buku apa pun saat ini.</p>
-                            <a href="/Aplikasi Peminjaman Buku/VIEW/SISWA/daftarBuku.php" class="btn-primary-custom">
+                            <!-- CLEAN URL: Pinjam Buku Sekarang -->
+                            <a href="/Aplikasi_Peminjaman_Buku/siswa/daftarBuku" class="btn-primary-custom">
                                 <i class="fa-solid fa-plus"></i> Pinjam Buku Sekarang
                             </a>
                         </div>

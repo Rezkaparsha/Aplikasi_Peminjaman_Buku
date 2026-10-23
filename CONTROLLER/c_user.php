@@ -3,6 +3,18 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+if (!isset($_SESSION['id_user'])) {
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
+    exit;
+}
+
+// Catat jejak otomatis berdasarkan role yang sedang aktif
+if ($_SESSION['role'] === 'admin') {
+    $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
+} else {
+    $_SESSION['last_page_siswa'] = $_SERVER['REQUEST_URI'];
+}
+
 require_once __DIR__ . "/../MODEL/m_users.php";
 
 class UserController
@@ -67,7 +79,6 @@ class UserController
         try {
             return $this->user->delete($id_user);
         } catch (mysqli_sql_exception $e) {
-            // Tangkap Error Code 1451 (Foreign Key Constraint Fail)
             if ($e->getCode() === 1451) {
                 $_SESSION['error'] = "User tidak dapat dihapus karena memiliki riwayat peminjaman buku!";
             } else {
@@ -92,68 +103,111 @@ switch ($aksi) {
     // ---------------------------------------------------------
     case 'tambah':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $hasil = $controller->tambah(
-                $_POST['nis_nip'] ?? '',
-                $_POST['nama_lengkap'] ?? '',
-                $_POST['kelas'] ?? '',
-                $_POST['username'] ?? '',
-                $_POST['password'] ?? '',
-                $_POST['role'] ?? 'siswa'
-            );
+            $nis_nip      = trim($_POST['nis_nip'] ?? '');
+            $nama_lengkap = trim($_POST['nama_lengkap'] ?? '');
+            $kelas        = trim($_POST['kelas'] ?? '');
+            $username     = trim($_POST['username'] ?? '');
+            $password     = $_POST['password'] ?? '';
+            $role         = $_POST['role'] ?? 'siswa';
 
-            if ($hasil) {
-                $_SESSION['success'] = "User berhasil ditambahkan!";
-            } else {
-                $_SESSION['error'] = "Gagal menambahkan user baru.";
+            // VALIDASI REGEX NAMA
+            if (!preg_match("/^[a-zA-Z\s'-]+$/", $nama_lengkap)) {
+                $_SESSION['error'] = "Nama lengkap hanya boleh berisi huruf dan spasi (tidak boleh ada angka atau simbol)!";
+                header("Location: /Aplikasi_Peminjaman_Buku/admin/user/tambahUser");
+                exit;
+            }
+
+            // VALIDASI REGEX NIS (3 - 10 DIGIT)
+            if (!preg_match("/^\d{10}$/", $nis_nip)) {
+                $_SESSION['error'] = "NIS/NIP harus berupa angka murni dengan panjang 3 hingga 10 digit!";
+                header("Location: /Aplikasi_Peminjaman_Buku/admin/user/tambahUser");
+                exit;
+            }
+
+            // TRY-CATCH UNTUK MENCEGAH FATAL ERROR DUPLICATE ENTRY
+            try {
+                $hasil = $controller->tambah($nis_nip, $nama_lengkap, $kelas, $username, $password, $role);
+
+                if ($hasil) {
+                    $_SESSION['success'] = "User berhasil ditambahkan!";
+                    header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarUser");
+                    exit;
+                } else {
+                    $_SESSION['error'] = "Gagal menambahkan user baru.";
+                    header("Location: /Aplikasi_Peminjaman_Buku/admin/user/tambahUser");
+                    exit;
+                }
+            } catch (mysqli_sql_exception $e) {
+                // Tangkap Error Code 1062 (Duplicate Entry pada MySQL)
+                if ($e->getCode() === 1062) {
+                    $_SESSION['error'] = "NIS/NIP atau Username tersebut sudah terdaftar!";
+                } else {
+                    $_SESSION['error'] = "Terjadi kesalahan sistem: " . $e->getMessage();
+                }
+                header("Location: /Aplikasi_Peminjaman_Buku/admin/user/tambahUser");
+                exit;
             }
         }
-        header("Location: /Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarUser.php");
+        header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarUser");
         exit;
 
-    // ---------------------------------------------------------
-    // 2. PROSES UPDATE USER
-    // ---------------------------------------------------------
+        // ---------------------------------------------------------
+        // 2. PROSES UPDATE USER
+        // ---------------------------------------------------------
     case 'update':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $hasil = $controller->update(
-                (int) ($_POST['id_user'] ?? 0),
-                $_POST['nis_nip'] ?? '',
-                $_POST['nama_lengkap'] ?? '',
-                $_POST['kelas'] ?? '',
-                $_POST['username'] ?? '',
-                $_POST['role'] ?? 'siswa'
-            );
+            $id_user      = (int) ($_POST['id_user'] ?? 0);
+            $nis_nip      = trim($_POST['nis_nip'] ?? '');
+            $nama_lengkap = trim($_POST['nama_lengkap'] ?? '');
+            $kelas        = trim($_POST['kelas'] ?? '');
+            $username     = trim($_POST['username'] ?? '');
+            $role         = $_POST['role'] ?? 'siswa';
+
+            // VALIDASI REGEX NAMA
+            if (!preg_match("/^[a-zA-Z\s'-]+$/", $nama_lengkap)) {
+                $_SESSION['error'] = "Nama lengkap hanya boleh berisi huruf dan spasi (tidak boleh ada angka atau simbol)!";
+                header("Location: /Aplikasi_Peminjaman_Buku/admin/user/editUser?id_user=" . $id_user);
+                exit;
+            }
+
+            // VALIDASI REGEX NIS (3 - 10 DIGIT)
+            if (!preg_match("/^\d{10}$/", $nis_nip)) {
+                $_SESSION['error'] = "NIS/NIP harus berupa angka murni dengan panjang 3 hingga 10 digit!";
+                header("Location: /Aplikasi_Peminjaman_Buku/admin/user/editUser?id_user=" . $id_user);
+                exit;
+            }
+
+            $hasil = $controller->update($id_user, $nis_nip, $nama_lengkap, $kelas, $username, $role);
 
             if ($hasil) {
                 $_SESSION['success'] = "Data user berhasil diperbarui!";
+                header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarUser");
+                exit;
             } else {
                 $_SESSION['error'] = "Gagal memperbarui data user.";
+                header("Location: /Aplikasi_Peminjaman_Buku/admin/user/editUser?id_user=" . $id_user);
+                exit;
             }
         }
-        header("Location: /Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarUser.php");
+        header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarUser");
         exit;
 
-    // ---------------------------------------------------------
-    // 3. PROSES UPDATE PASSWORD (ADMIN & SISWA)
-    // ---------------------------------------------------------
+        // ---------------------------------------------------------
+        // 3. PROSES UPDATE PASSWORD
+        // ---------------------------------------------------------
     case 'updatePassword':
         if (!isset($_SESSION['id_user'])) {
-            header("Location: /Aplikasi Peminjaman Buku/VIEW/login.php");
+            header("Location: /Aplikasi_Peminjaman_Buku/login");
             exit;
         }
 
-        // Update Password oleh Admin via Form Admin
         if (isset($_POST['id_user']) && !empty($_POST['id_user'])) {
-            $controller->updatePassword(
-                (int) $_POST['id_user'],
-                $_POST['password']
-            );
+            $controller->updatePassword((int) $_POST['id_user'], $_POST['password']);
             $_SESSION['success'] = "Password user berhasil diperbarui!";
-            header("Location: /Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarUser.php");
+            header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarUser");
             exit;
         }
 
-        // Update Password Mandiri oleh Siswa via Profil
         $id_user       = (int) $_SESSION['id_user'];
         $password_lama = $_POST['password_lama'] ?? '';
         $password_baru = $_POST['password_baru'] ?? '';
@@ -161,20 +215,20 @@ switch ($aksi) {
 
         if (empty($password_lama) || empty($password_baru) || empty($konfirmasi)) {
             $_SESSION['error'] = "Semua bidang password wajib diisi!";
-            header("Location: /Aplikasi Peminjaman Buku/VIEW/SISWA/profil.php");
+            header("Location: /Aplikasi_Peminjaman_Buku/siswa/profil");
             exit;
         }
 
         if ($password_baru !== $konfirmasi) {
             $_SESSION['error'] = "Konfirmasi password baru tidak cocok!";
-            header("Location: /Aplikasi Peminjaman Buku/VIEW/SISWA/profil.php");
+            header("Location: /Aplikasi_Peminjaman_Buku/siswa/profil");
             exit;
         }
 
         $userCurrent = $controller->detail($id_user);
         if (!$userCurrent || !password_verify($password_lama, $userCurrent['password'])) {
             $_SESSION['error'] = "Password saat ini (lama) tidak sesuai!";
-            header("Location: /Aplikasi Peminjaman Buku/VIEW/SISWA/profil.php");
+            header("Location: /Aplikasi_Peminjaman_Buku/siswa/profil");
             exit;
         }
 
@@ -185,12 +239,12 @@ switch ($aksi) {
             $_SESSION['error'] = "Gagal memperbarui password. Silakan coba lagi.";
         }
 
-        header("Location: /Aplikasi Peminjaman Buku/VIEW/SISWA/profil.php");
+        header("Location: /Aplikasi_Peminjaman_Buku/siswa/profil");
         exit;
 
-    // ---------------------------------------------------------
-    // 4. PROSES HAPUS USER
-    // ---------------------------------------------------------
+        // ---------------------------------------------------------
+        // 4. PROSES HAPUS USER
+        // ---------------------------------------------------------
     case 'hapus':
         $id_user = (int) ($_GET['id_user'] ?? 0);
         if ($id_user > 0) {
@@ -199,13 +253,10 @@ switch ($aksi) {
                 $_SESSION['success'] = "User berhasil dihapus.";
             }
         }
-        header("Location: /Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarUser.php");
+        header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarUser");
         exit;
 
-    // ---------------------------------------------------------
-    // DEFAULT REDIRECT
-    // ---------------------------------------------------------
     default:
-        header("Location: /Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarUser.php");
+        header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarUser");
         exit;
 }

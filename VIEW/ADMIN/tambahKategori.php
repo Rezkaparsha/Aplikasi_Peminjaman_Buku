@@ -3,19 +3,20 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Proteksi Akses Admin
+// Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi Peminjaman Buku/CONTROLLER/c_peminjaman.php?aksi=dashboard_siswa';
-    header("Location: " . $kembali);
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
 // Simpan URL lokasi controller aktif saat ini
 $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 ?>
-
-
-
 
 <!DOCTYPE html>
 <html lang="id">
@@ -170,7 +171,8 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
                     <h3>Formulir Kategori Buku</h3>
                 </div>
 
-                <form action="../../CONTROLLER/c_kategori.php?aksi=tambah" method="POST">
+                <!-- Path action form ke Controller menggunakan absolute path -->
+                <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_kategori.php?aksi=tambah" method="POST">
                     
                     <div class="form-group">
                         <label for="nama_kategori">Nama Kategori</label>
@@ -192,7 +194,8 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
                     <div class="action-group">
                         <button type="submit" class="btn btn-submit">Simpan Kategori</button>
-                        <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarKategori.php" class="btn btn-cancel">Batal</a>
+                        <!-- CLEAN URL: Kembali ke Daftar Kategori -->
+                        <a href="/Aplikasi_Peminjaman_Buku/admin/daftarKategori" class="btn btn-cancel">Batal</a>
                     </div>
 
                 </form>

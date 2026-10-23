@@ -1,12 +1,16 @@
 <?php
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. Proteksi Akses Admin: Arahkan ke login utama jika tidak ada session admin
+// 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/AUTH/login.php");
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
+        header("Location: " . $kembali);
+        exit;
+    }
+    header("Location: /Aplikasi_Peminjaman_Buku/login");
     exit;
 }
 
@@ -18,7 +22,8 @@ $idKategori = (int)($_GET['id_kategori'] ?? 0);
 
 if ($idKategori <= 0) {
     $_SESSION['error'] = "ID Kategori tidak valid.";
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarKategori.php");
+    // Clean URL: Redirect ke Daftar Kategori
+    header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarKategori");
     exit;
 }
 
@@ -26,12 +31,13 @@ if ($idKategori <= 0) {
 require_once __DIR__ . "/../../MODEL/m_kategori.php";
 $kategoriModel = new Kategori();
 
-// Ambil data detail kategori berdasarkan ID (Sesuaikan nama method dengan model kamu, misal: getById)
+// Ambil data detail kategori berdasarkan ID
 $dataKategori = $kategoriModel->getById($idKategori);
 
 if (!$dataKategori) {
     $_SESSION['error'] = "Data kategori tidak ditemukan.";
-    header("Location: /Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarKategori.php");
+    // Clean URL: Redirect ke Daftar Kategori
+    header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarKategori");
     exit;
 }
 ?>
@@ -60,18 +66,13 @@ if (!$dataKategori) {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            /* Mengunci scrollbar browser utama */
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f4f7f6;
         }
 
         body {
             display: flex;
-                        background-color: #f4f7f6;
             color: #333;
-            display: flex;
-            min-height: 100vh;
         }
 
         /* 2. Main Content mengisi sisa layar */
@@ -88,9 +89,7 @@ if (!$dataKategori) {
             padding: 30px;
             flex: 1;
             overflow-y: auto;
-            /* Aktifkan scroll bawah jika isi form tinggi */
             overflow-x: hidden;
-            /* Mencegah layar bergeser ke samping */
         }
 
         /* 4. Card khusus Formulir (Bisa disesuaikan ukurannya) */
@@ -100,8 +99,6 @@ if (!$dataKategori) {
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
             width: 100%;
-            /* Khusus halaman Tambah / Edit / Edit Profil: 
-       Gunakan max-width 600px - 700px agar form rapi dan tidak terlalu lebar */
             max-width: 650px;
         }
 
@@ -118,7 +115,6 @@ if (!$dataKategori) {
             font-size: 20px;
             color: #2c3e50;
         }
-
 
         .card-header {
             border-bottom: 2px solid #ecf0f1;
@@ -237,7 +233,7 @@ if (!$dataKategori) {
                 <?php if (!empty($dataKategori)): ?>
 
                     <!-- Form POST tetap diarahkan ke Controller untuk eksekusi update query -->
-                    <form action="/Aplikasi Peminjaman Buku/CONTROLLER/c_kategori.php?aksi=update" method="POST">
+                    <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_kategori.php?aksi=update" method="POST">
 
                         <input type="hidden" name="id_kategori" value="<?= htmlspecialchars($dataKategori['id_kategori']) ?>">
 
@@ -261,7 +257,8 @@ if (!$dataKategori) {
 
                         <div class="action-group">
                             <button type="submit" class="btn btn-submit">Simpan Perubahan</button>
-                            <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarKategori.php" class="btn btn-cancel">Batal</a>
+                            <!-- CLEAN URL: Kembali ke Daftar Kategori -->
+                            <a href="/Aplikasi_Peminjaman_Buku/admin/daftarKategori" class="btn btn-cancel">Batal</a>
                         </div>
 
                     </form>
@@ -270,7 +267,8 @@ if (!$dataKategori) {
 
                     <div class="alert-error">Data kategori tidak ditemukan.</div>
                     <div style="text-align: center;">
-                        <a href="/Aplikasi Peminjaman Buku/VIEW/ADMIN/daftarKategori.php" class="btn btn-cancel" style="display: inline-block;">Kembali ke Daftar Kategori</a>
+                        <!-- CLEAN URL: Kembali ke Daftar Kategori -->
+                        <a href="/Aplikasi_Peminjaman_Buku/admin/daftarKategori" class="btn btn-cancel" style="display: inline-block;">Kembali ke Daftar Kategori</a>
                     </div>
 
                 <?php endif; ?>
