@@ -1,11 +1,6 @@
 # 📚 Aplikasi Peminjaman Buku
 
-Sistem informasi perpustakaan berbasis web yang membantu proses peminjaman dan pengembalian buku secara digital. Aplikasi ini memudahkan siswa dalam mencari dan meminjam buku serta membantu admin dalam mengelola data buku, transaksi, dan denda.
-
-![PHP](https://img.shields.io/badge/PHP-8.x-777BB4?style=for-the-badge&logo=php)
-![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql)
-![Bootstrap](https://img.shields.io/badge/Bootstrap-5-7952B3?style=for-the-badge&logo=bootstrap)
-![Status](https://img.shields.io/badge/Status-Development-success?style=for-the-badge)
+Aplikasi Peminjaman Buku adalah sistem informasi perpustakaan berbasis web yang dirancang untuk membantu proses peminjaman dan pengembalian buku secara digital. Sistem ini memudahkan siswa dalam mencari dan meminjam buku serta membantu admin dalam mengelola data buku, transaksi, pengguna, dan denda secara terorganisir.
 
 ---
 
@@ -13,11 +8,11 @@ Sistem informasi perpustakaan berbasis web yang membantu proses peminjaman dan p
 
 Aplikasi ini dibuat untuk:
 
-- Mempermudah proses peminjaman dan pengembalian buku.
-- Membantu admin mengelola data perpustakaan secara digital.
-- Mencatat seluruh aktivitas peminjaman dan pengembalian.
-- Mengelola denda keterlambatan secara otomatis.
-- Memantau stok buku dengan lebih mudah.
+- Mempermudah siswa dalam mencari dan meminjam buku.
+- Membantu admin mengelola perpustakaan secara digital.
+- Mencatat seluruh aktivitas peminjaman dan pengembalian buku.
+- Mengelola denda keterlambatan secara terstruktur.
+- Memantau stok buku secara lebih efektif.
 
 ---
 
@@ -76,7 +71,7 @@ Admin dapat:
 - Registrasi Siswa
 - Logout
 - Session Management
-- Role Based Access Control
+- Role Based Access Control (RBAC)
 
 ### 📚 Manajemen Buku
 
@@ -86,20 +81,20 @@ Admin dapat:
 - Edit Buku
 - Hapus Buku
 - Kelola Genre
-- Kelola Stok
+- Kelola Stok Buku
 
 #### Siswa
 
-- Lihat Daftar Buku
-- Cari Buku
-- Lihat Detail Buku
-- Cek Ketersediaan Buku
+- Melihat Daftar Buku
+- Mencari Buku
+- Melihat Detail Buku
+- Melihat Ketersediaan Buku
 
 ### 📝 Manajemen Peminjaman
 
 - Peminjaman Buku
-- Pencatatan Tanggal Pinjam
-- Batas Waktu Pengembalian
+- Pencatatan Tanggal Peminjaman
+- Penentuan Batas Waktu Pengembalian
 - Pengurangan Stok Otomatis
 - Monitoring Status Peminjaman
 
@@ -107,7 +102,7 @@ Admin dapat:
 
 - Pengembalian Buku
 - Verifikasi Pengembalian
-- Pencatatan Tanggal Kembali
+- Pencatatan Tanggal Pengembalian
 - Penambahan Stok Otomatis
 
 ### 💰 Manajemen Denda
@@ -122,6 +117,20 @@ Admin dapat:
 - Riwayat Pengembalian
 - Detail Denda
 - Status Transaksi
+
+### 👨‍🎓 Manajemen Siswa
+
+- Tambah Data Siswa
+- Ubah Data Siswa
+- Hapus Data Siswa
+- Lihat Data Siswa
+
+### 👨‍💼 Manajemen Admin
+
+- Tambah Admin
+- Ubah Admin
+- Hapus Admin
+- Lihat Daftar Admin
 
 ---
 
@@ -158,12 +167,12 @@ Admin dapat:
 
 ## ⚙️ Aturan Sistem
 
-1. Siswa wajib login sebelum meminjam buku.
-2. Buku hanya dapat dipinjam jika stok tersedia.
-3. Setiap transaksi memiliki tanggal pinjam dan batas pengembalian.
-4. Stok buku berkurang saat buku dipinjam.
+1. Siswa wajib login sebelum melakukan peminjaman.
+2. Buku hanya dapat dipinjam jika stok masih tersedia.
+3. Setiap transaksi memiliki tanggal peminjaman dan batas pengembalian.
+4. Stok buku berkurang saat peminjaman berhasil.
 5. Stok buku bertambah setelah buku dikembalikan.
-6. Keterlambatan dikenakan denda.
+6. Keterlambatan pengembalian dikenakan denda.
 7. Data transaksi disimpan sebagai histori.
 8. Admin memiliki hak akses penuh terhadap pengelolaan sistem.
 9. Siswa hanya dapat mengakses data peminjamannya sendiri.
@@ -186,7 +195,7 @@ cd Aplikasi_Peminjaman_Buku
 
 ## 3. Buat Database
 
-Buka phpMyAdmin lalu buat database:
+Buka phpMyAdmin kemudian buat database:
 
 ```sql
 CREATE DATABASE db_perpustakaan;
@@ -198,24 +207,19 @@ CREATE DATABASE db_perpustakaan;
 2. Pilih database `db_perpustakaan`.
 3. Klik menu **Import**.
 4. Pilih file database `.sql`.
-5. Klik tombol **Import**.
+5. Klik **Import**.
 
 ## 5. Konfigurasi Database
 
-Sesuaikan file koneksi database:
+Sesuaikan pengaturan koneksi database pada file konfigurasi aplikasi.
+
+Contoh:
 
 ```php
 $host = "localhost";
 $user = "root";
 $password = "";
 $database = "db_perpustakaan";
-
-$conn = mysqli_connect(
-    $host,
-    $user,
-    $password,
-    $database
-);
 ```
 
 ## 6. Jalankan Aplikasi
@@ -231,12 +235,12 @@ http://localhost/Aplikasi_Peminjaman_Buku
 ## Admin
 
 | Keterangan | Data |
-|------------|---------|
+|------------|------------|
 | Username / NIS / NIP | 1234567890 |
 | Password | 123 |
 | Role | Admin |
 
-### Hak Akses Admin
+### Hak Akses
 
 - Kelola Buku
 - Kelola Siswa
@@ -251,17 +255,17 @@ http://localhost/Aplikasi_Peminjaman_Buku
 ## Siswa
 
 | Keterangan | Data |
-|------------|---------|
+|------------|------------|
 | Username / NIS / NIP | 0123456789 |
 | Password | 123 |
 | Role | Siswa |
 
-### Hak Akses Siswa
+### Hak Akses
 
 - Melihat Buku
 - Mencari Buku
-- Melakukan Peminjaman
-- Melakukan Pengembalian
+- Meminjam Buku
+- Mengembalikan Buku
 - Melihat Histori
 - Melihat Denda
 
@@ -293,7 +297,8 @@ Aplikasi Peminjaman Buku
 
 # 🛠️ Teknologi yang Digunakan
 
-- PHP Native
+- PHP OOP
+- MVC (Model View Controller)
 - MySQL
 - Bootstrap 5
 - HTML5
@@ -301,31 +306,6 @@ Aplikasi Peminjaman Buku
 - JavaScript
 - phpMyAdmin
 - Laragon
-- XAMPP
-
----
-
-# 📷 Screenshot
-
-Tambahkan screenshot aplikasi agar repository terlihat lebih profesional.
-
-```text
-assets/images/login.png
-assets/images/dashboard-admin.png
-assets/images/dashboard-siswa.png
-assets/images/daftar-buku.png
-```
-
----
-
-# 📊 Diagram Sistem
-
-Dokumentasi yang dapat ditambahkan:
-
-- Use Case Diagram
-- Activity Diagram
-- Class Diagram
-- Entity Relationship Diagram (ERD)
 
 ---
 
@@ -333,4 +313,4 @@ Dokumentasi yang dapat ditambahkan:
 
 **Rezka Parsha**
 
-Proyek ini dibuat sebagai media pembelajaran pengembangan aplikasi perpustakaan berbasis web untuk membantu proses peminjaman dan pengembalian buku secara digital, terstruktur, dan mudah digunakan.
+Proyek ini dibuat sebagai media pembelajaran pengembangan aplikasi perpustakaan berbasis web menggunakan konsep Object-Oriented Programming (OOP) dan arsitektur MVC (Model View Controller) untuk menghasilkan kode yang lebih terstruktur, mudah dikembangkan, dan mudah dipelihara.
