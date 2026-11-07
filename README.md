@@ -1,6 +1,6 @@
 # 📚 Aplikasi Peminjaman Buku
 
-Aplikasi Peminjaman Buku adalah sistem informasi perpustakaan berbasis web yang dirancang untuk membantu proses peminjaman dan pengembalian buku secara digital. Sistem ini memudahkan siswa dalam mencari dan meminjam buku serta membantu admin dalam mengelola data buku, transaksi, pengguna, dan denda secara terorganisir.
+Aplikasi Peminjaman Buku adalah sistem informasi perpustakaan berbasis web yang dirancang untuk membantu proses peminjaman dan pengembalian buku secara digital. Sistem ini memudahkan siswa dalam mencari dan mengajukan peminjaman buku, serta membantu admin dalam mengelola data buku, transaksi, pengguna, dan denda secara terorganisir.
 
 ---
 
@@ -8,7 +8,7 @@ Aplikasi Peminjaman Buku adalah sistem informasi perpustakaan berbasis web yang 
 
 Aplikasi ini dibuat untuk:
 
-- Mempermudah siswa dalam mencari dan meminjam buku.
+- Mempermudah siswa dalam mencari dan mengajukan peminjaman buku.
 - Membantu admin mengelola perpustakaan secara digital.
 - Mencatat seluruh aktivitas peminjaman dan pengembalian buku.
 - Mengelola denda keterlambatan secara terstruktur.
@@ -22,11 +22,11 @@ Aplikasi mencakup beberapa modul utama:
 
 - 📚 Daftar Buku
 - 📖 Detail Buku
-- 📝 Peminjaman Buku
-- 🔄 Pengembalian Buku
+- 📝 Pengajuan dan Persetujuan Peminjaman
+- 🔄 Pengembalian Buku (diproses admin)
 - 💳 Transaksi
 - 💰 Denda
-- 📋 Histori Peminjaman
+- 📋 Histori Transaksi
 
 ---
 
@@ -36,27 +36,23 @@ Aplikasi mencakup beberapa modul utama:
 
 Siswa dapat:
 
-- Login ke dalam aplikasi
+- Registrasi akun dan login ke dalam aplikasi
 - Melihat daftar buku
-- Melihat detail buku
-- Mencari buku berdasarkan judul, penulis, atau genre
-- Melakukan peminjaman buku
-- Melihat status peminjaman
-- Mengembalikan buku
-- Melihat histori peminjaman
-- Melihat informasi denda
+- Mencari buku
+- Mengajukan peminjaman buku (satu pengajuan dapat berisi beberapa buku)
+- Melihat status dan detail peminjaman miliknya sendiri
+- Melihat alasan jika pengajuan ditolak
 
 ### 👨‍💼 Admin
 
 Admin dapat:
 
 - Login ke dalam aplikasi
-- Mengelola data buku (CRUD)
-- Mengelola data siswa (CRUD)
-- Mengelola data admin
-- Mengelola transaksi peminjaman
-- Memproses pengembalian buku
-- Mengelola denda keterlambatan
+- Mengelola data buku, kategori, penerbit, dan penulis
+- Mengelola data pengguna (admin dan siswa)
+- Menyetujui pengajuan peminjaman dan menentukan batas tanggal pengembalian
+- Menolak pengajuan peminjaman beserta alasannya
+- Memproses pengembalian buku dan mencatat kondisi buku
 - Melihat histori transaksi
 - Memantau stok buku
 
@@ -66,71 +62,43 @@ Admin dapat:
 
 ### 🔐 Autentikasi
 
-- Login Admin
-- Login Siswa
+- Login (NIS/NIP atau username)
 - Registrasi Siswa
 - Logout
 - Session Management
-- Role Based Access Control (RBAC)
+- Role Based Access Control (RBAC): admin dan siswa memiliki halaman berbeda
+- Password disimpan dalam bentuk hash bcrypt
 
-### 📚 Manajemen Buku
+### 📚 Manajemen Buku (Admin)
 
-#### Admin
-
-- Tambah Buku
-- Edit Buku
-- Hapus Buku
-- Kelola Genre
+- Tambah, Ubah, Hapus Buku
+- Kelola Kategori, Penerbit, dan Penulis
 - Kelola Stok Buku
-
-#### Siswa
-
-- Melihat Daftar Buku
-- Mencari Buku
-- Melihat Detail Buku
-- Melihat Ketersediaan Buku
 
 ### 📝 Manajemen Peminjaman
 
-- Peminjaman Buku
-- Pencatatan Tanggal Peminjaman
-- Penentuan Batas Waktu Pengembalian
-- Pengurangan Stok Otomatis
-- Monitoring Status Peminjaman
+- Siswa mengajukan peminjaman (status **Diajukan**); stok baru dicek, belum berkurang
+- Admin menyetujui pengajuan: stok berkurang otomatis, batas pengembalian ditentukan admin, status menjadi **Dipinjam**
+- Admin dapat menolak pengajuan dengan alasan, status menjadi **Ditolak**
+- Proses persetujuan memakai transaksi database sehingga stok tetap konsisten
 
 ### 🔄 Manajemen Pengembalian
 
-- Pengembalian Buku
-- Verifikasi Pengembalian
-- Pencatatan Tanggal Pengembalian
-- Penambahan Stok Otomatis
+- Admin memproses pengembalian buku
+- Kondisi buku dicatat per buku: **Normal**, **Rusak**, atau **Hilang**
+- Stok bertambah otomatis (buku berkondisi Hilang tidak menambah stok)
+- Status peminjaman menjadi **Dikembalikan**
 
 ### 💰 Manajemen Denda
 
-- Perhitungan Denda Keterlambatan
-- Monitoring Data Denda
-- Pengelolaan Status Denda
+- Denda keterlambatan: **Rp 1.000 per hari** sejak melewati batas pengembalian
+- Denda tambahan untuk buku Rusak/Hilang (nominal diisi admin)
+- Denda dicatat di tabel `denda` dan di histori transaksi
 
 ### 📋 Histori Transaksi
 
-- Riwayat Peminjaman
-- Riwayat Pengembalian
-- Detail Denda
-- Status Transaksi
-
-### 👨‍🎓 Manajemen Siswa
-
-- Tambah Data Siswa
-- Ubah Data Siswa
-- Hapus Data Siswa
-- Lihat Data Siswa
-
-### 👨‍💼 Manajemen Admin
-
-- Tambah Admin
-- Ubah Admin
-- Hapus Admin
-- Lihat Daftar Admin
+- Arsip transaksi yang sudah dikembalikan
+- Menyimpan nama siswa, judul buku, tanggal pinjam, batas kembali, tanggal dikembalikan, dan denda
 
 ---
 
@@ -140,46 +108,52 @@ Admin dapat:
 
 1. Login ke aplikasi.
 2. Masuk ke dashboard siswa.
-3. Melihat daftar buku.
-4. Mencari buku yang ingin dipinjam.
-5. Melihat detail buku.
-6. Melakukan peminjaman.
-7. Sistem mencatat transaksi.
-8. Sistem mengurangi stok buku.
-9. Siswa melihat status peminjaman.
-10. Siswa mengembalikan buku.
-11. Sistem memeriksa keterlambatan.
-12. Sistem mencatat histori transaksi.
+3. Melihat daftar buku dan memilih buku.
+4. Mengajukan peminjaman (status **Diajukan**).
+5. Menunggu keputusan admin; status dapat dilihat di halaman Peminjaman.
+6. Jika disetujui, status **Dipinjam** dan batas pengembalian tampil di detail.
+7. Siswa menyerahkan buku ke admin pada saat pengembalian.
 
 ### Alur Admin
 
 1. Login ke dashboard admin.
-2. Mengelola data buku.
-3. Mengelola data siswa.
-4. Mengelola data admin.
-5. Mengelola transaksi peminjaman.
-6. Memproses pengembalian buku.
-7. Mengelola denda keterlambatan.
-8. Memantau stok buku.
-9. Melihat histori transaksi.
+2. Mengelola data master (buku, kategori, penerbit, penulis, pengguna).
+3. Membuka daftar peminjaman dan memeriksa pengajuan.
+4. Menyetujui (isi batas pengembalian) atau menolak (isi alasan).
+5. Saat buku kembali: memilih kondisi tiap buku dan mengisi denda tambahan bila perlu.
+6. Sistem menghitung denda keterlambatan, menyesuaikan stok, dan menyimpan histori.
+7. Melihat histori transaksi.
+
+### Diagram Status Peminjaman
+
+```text
+Diajukan ──(admin setuju)──> Dipinjam ──(admin proses kembali)──> Dikembalikan
+    └────(admin tolak)─────> Ditolak
+```
 
 ---
 
 ## ⚙️ Aturan Sistem
 
-1. Siswa wajib login sebelum melakukan peminjaman.
-2. Buku hanya dapat dipinjam jika stok masih tersedia.
-3. Setiap transaksi memiliki tanggal peminjaman dan batas pengembalian.
-4. Stok buku berkurang saat peminjaman berhasil.
-5. Stok buku bertambah setelah buku dikembalikan.
-6. Keterlambatan pengembalian dikenakan denda.
-7. Data transaksi disimpan sebagai histori.
+1. Siswa wajib login sebelum mengajukan peminjaman.
+2. Buku hanya dapat diajukan jika stok masih mencukupi.
+3. Setiap transaksi memiliki tanggal pinjam; batas pengembalian ditentukan admin saat menyetujui.
+4. Stok buku berkurang ketika admin MENYETUJUI pengajuan (bukan saat diajukan).
+5. Stok buku bertambah ketika admin memproses pengembalian (kecuali buku Hilang).
+6. Keterlambatan pengembalian dikenakan denda Rp 1.000 per hari.
+7. Data transaksi yang selesai disimpan sebagai histori.
 8. Admin memiliki hak akses penuh terhadap pengelolaan sistem.
 9. Siswa hanya dapat mengakses data peminjamannya sendiri.
 
 ---
 
 # 🚀 Instalasi
+
+## Prasyarat
+
+- Web server Apache dengan **mod_rewrite aktif** dan `AllowOverride All` (sudah default di Laragon), karena routing URL bersih memakai file `.htaccess`
+- PHP dan MySQL (contoh: Laragon)
+- Folder proyek bernama `Aplikasi_Peminjaman_Buku` (nama folder dipakai pada `RewriteBase` di `.htaccess`)
 
 ## 1. Clone Repository
 
@@ -206,20 +180,18 @@ CREATE DATABASE db_perpustakaan;
 1. Buka phpMyAdmin.
 2. Pilih database `db_perpustakaan`.
 3. Klik menu **Import**.
-4. Pilih file database `.sql`.
+4. Pilih file `DATABASE/db_perpustakaan.sql`.
 5. Klik **Import**.
 
 ## 5. Konfigurasi Database
 
-Sesuaikan pengaturan koneksi database pada file konfigurasi aplikasi.
-
-Contoh:
+Sesuaikan pengaturan koneksi pada file `MODEL/m_koneksi.php` (class `Koneksi`):
 
 ```php
-$host = "localhost";
-$user = "root";
-$password = "";
-$database = "db_perpustakaan";
+private $host = "localhost";
+private $username = "root";
+private $pass = "";
+private $dbname = "db_perpustakaan";
 ```
 
 ## 6. Jalankan Aplikasi
@@ -240,18 +212,6 @@ http://localhost/Aplikasi_Peminjaman_Buku
 | Password | 123 |
 | Role | Admin |
 
-### Hak Akses
-
-- Kelola Buku
-- Kelola Siswa
-- Kelola Admin
-- Kelola Transaksi
-- Kelola Denda
-- Histori Transaksi
-- Monitoring Stok
-
----
-
 ## Siswa
 
 | Keterangan | Data |
@@ -260,33 +220,45 @@ http://localhost/Aplikasi_Peminjaman_Buku
 | Password | 123 |
 | Role | Siswa |
 
-### Hak Akses
-
-- Melihat Buku
-- Mencari Buku
-- Meminjam Buku
-- Mengembalikan Buku
-- Melihat Histori
-- Melihat Denda
-
 ---
 
-# 🏗️ Struktur Modul
+# 🏗️ Struktur Folder (MVC)
+
+```text
+Aplikasi_Peminjaman_Buku
+│
+├── index.php            # pintu masuk, mengarahkan sesuai login & role
+├── .htaccess            # routing URL bersih + proteksi folder
+├── ASSETS/              # cover buku dan logo
+├── CONTROLLER/          # c_login, c_peminjaman, c_buku, c_kategori, c_penerbit,
+│                        # c_penulis, c_user, c_denda, c_histori
+├── MODEL/               # m_koneksi, m_users, m_buku, m_peminjaman, dll
+├── VIEW/
+│   ├── AUTH/            # login, register
+│   ├── ADMIN/           # halaman admin
+│   ├── SISWA/           # halaman siswa
+│   └── TEMPLATE/        # sidebar admin dan siswa
+└── DATABASE/            # db_perpustakaan.sql
+```
+
+## Struktur Modul
 
 ```text
 Aplikasi Peminjaman Buku
 │
-├── Login
+├── Login / Registrasi
 ├── Dashboard
 │
 ├── Master Data
 │   ├── Buku
-│   ├── Genre
-│   ├── Siswa
-│   └── Admin
+│   ├── Kategori
+│   ├── Penerbit
+│   ├── Penulis
+│   └── Pengguna
 │
 ├── Transaksi
-│   ├── Peminjaman
+│   ├── Pengajuan Peminjaman
+│   ├── Persetujuan / Penolakan
 │   ├── Pengembalian
 │   └── Denda
 │
@@ -299,11 +271,10 @@ Aplikasi Peminjaman Buku
 
 - PHP OOP
 - MVC (Model View Controller)
-- MySQL
-- Bootstrap 5
-- HTML5
-- CSS3
-- JavaScript
+- MySQL (mysqli + prepared statement)
+- Bootstrap 5 dan Tailwind CSS (via CDN)
+- Font Awesome dan SweetAlert2
+- HTML5, CSS3, JavaScript
 - phpMyAdmin
 - Laragon
 
@@ -311,6 +282,6 @@ Aplikasi Peminjaman Buku
 
 # 👨‍💻 Pengembang
 
-**Rezka Parsha**
+**Rezka Parsha Aqeela**
 
 Proyek ini dibuat sebagai media pembelajaran pengembangan aplikasi perpustakaan berbasis web menggunakan konsep Object-Oriented Programming (OOP) dan arsitektur MVC (Model View Controller) untuk menghasilkan kode yang lebih terstruktur, mudah dikembangkan, dan mudah dipelihara.
