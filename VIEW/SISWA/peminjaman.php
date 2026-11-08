@@ -1,11 +1,20 @@
 <?php
+// =====================================================================
+// FILE   : VIEW/SISWA/peminjaman.php  (URL: /siswa/peminjaman, lewat c_peminjaman.php?aksi=peminjaman_siswa)
+// FUNGSI : DAFTAR PEMINJAMAN milik siswa yang sedang login.
+// DATA   : M_Peminjaman::getPeminjamanByUser($id_user) (hanya data milik siswa ini).
+// =====================================================================
+// Mulai session hanya jika belum aktif (mencegah error session already started).
 if (session_status() === PHP_SESSION_NONE) {
+    // Mengaktifkan session (penyimpanan data login sementara di server).
     session_start();
 }
 
 // Proteksi Akses Siswa
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'siswa') {
+    // Jika yang login ternyata berrole 'admin' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        // Alamat tujuan: halaman admin terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_admin'] ?? '/Aplikasi_Peminjaman_Buku/admin/dashboardAdmin';
         header("Location: " . $kembali);
         exit;
@@ -20,36 +29,49 @@ $_SESSION['last_page_siswa'] = $_SERVER['REQUEST_URI'];
 // Ambil ID User aktif dari session login
 $id_user = (int)$_SESSION['id_user'];
 
+// Memuat file model m_koneksi.php (berisi class untuk query database).
 require_once __DIR__ . "/../../MODEL/m_koneksi.php";
+// Memuat file model m_peminjaman.php (berisi class untuk query database).
 require_once __DIR__ . "/../../MODEL/m_peminjaman.php";
 
+// Buat objek dari class Koneksi; variabel $db dipakai untuk memanggil fungsi-fungsinya.
 $db = new Koneksi();
+// Ambil objek koneksi dari class Koneksi untuk menjalankan query.
 $koneksi = $db->getKoneksi();
 
 // Ambil Nama Siswa untuk Topbar
 $stmtUser = $koneksi->prepare("SELECT nama_lengkap FROM users WHERE id_user = ?");
+// Isi tanda tanya (?) pada query dengan nilai sebenarnya (i = integer, s = string).
 $stmtUser->bind_param("i", $id_user);
+// Jalankan query.
 $stmtUser->execute();
+// Ambil hasil query; fetch_assoc() mengambil satu baris sebagai array berkunci nama kolom.
 $resUser = $stmtUser->get_result()->fetch_assoc();
 $namaSiswa = $resUser['nama_lengkap'] ?? 'Siswa';
 $stmtUser->close();
 
 // Inisialisasi Model Peminjaman
 $modelPeminjaman = new M_Peminjaman();
+// Panggil method getPeminjamanByUser() milik objek $modelPeminjaman; hasilnya disimpan di $dataPeminjaman.
 $dataPeminjaman = $modelPeminjaman->getPeminjamanByUser($id_user);
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
 
+<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
+    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
+    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Judul yang tampil di tab browser. -->
     <title>Peminjaman Saya - Aplikasi Perpustakaan</title>
 
     <!-- FontAwesome Icon & Google Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
     <style>
         /* 1. Reset & Kunci Layar Utama */
         * {
@@ -323,6 +345,7 @@ $dataPeminjaman = $modelPeminjaman->getPeminjamanByUser($id_user);
     </style>
 </head>
 
+<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <div class="app-wrapper">
@@ -337,8 +360,10 @@ $dataPeminjaman = $modelPeminjaman->getPeminjamanByUser($id_user);
             <div class="topbar">
                 <h2>Aktivitas Peminjaman</h2>
                 <div class="topbar-profile">
+                    <!-- htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). -->
                     <span style="font-size: 14px; font-weight: 600; color: #475569;"><?= htmlspecialchars($namaSiswa) ?></span>
                     <div style="width: 32px; height: 32px; background: #2563eb; color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 12px;">
+                        <!-- Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. -->
                         <?= strtoupper(substr($namaSiswa, 0, 1)) ?>
                     </div>
                 </div>
@@ -365,21 +390,27 @@ $dataPeminjaman = $modelPeminjaman->getPeminjamanByUser($id_user);
                         <div><?= htmlspecialchars($_SESSION['error']) ?></div>
                     </div>
                     <?php unset($_SESSION['error']); ?>
+                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
 
+                <!-- PESAN SUKSES (flash message): tampil bila controller mengisi $_SESSION['success']; langsung dihapus setelah tampil. -->
                 <?php if (isset($_SESSION['success'])): ?>
                     <div class="alert alert-success">
                         <i class="fa-solid fa-circle-check"></i>
                         <div><?= htmlspecialchars($_SESSION['success']) ?></div>
                     </div>
                     <?php unset($_SESSION['success']); ?>
+                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
 
                 <!-- Table Card Container -->
                 <div class="card-custom">
+                    <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($dataPeminjaman) -->
                     <?php if (!empty($dataPeminjaman)): ?>
                         <div class="table-responsive">
+                            <!-- TABEL data. -->
                             <table class="custom-table">
+                                <!-- Judul kolom tabel. -->
                                 <thead>
                                     <tr>
                                         <th style="width: 50px; text-align: center;">No</th>
@@ -393,6 +424,7 @@ $dataPeminjaman = $modelPeminjaman->getPeminjamanByUser($id_user);
                                         <th style="text-align: center; width: 110px;">Aksi</th>
                                     </tr>
                                 </thead>
+                                <!-- Isi tabel: satu baris (<tr>) untuk setiap data. -->
                                 <tbody>
                                     <?php $no = 1;
                                     foreach ($dataPeminjaman as $row): ?>
@@ -445,10 +477,12 @@ $dataPeminjaman = $modelPeminjaman->getPeminjamanByUser($id_user);
                                                 </a>
                                             </td>
                                         </tr>
+                                    <!-- Akhir perulangan foreach. -->
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
                         </div>
+                    <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
                     <?php else: ?>
                         <!-- State jika belum ada data peminjaman -->
                         <div class="empty-state">
@@ -460,6 +494,7 @@ $dataPeminjaman = $modelPeminjaman->getPeminjamanByUser($id_user);
                                 <i class="fa-solid fa-plus"></i> Pinjam Buku Sekarang
                             </a>
                         </div>
+                    <!-- Akhir kondisi if. -->
                     <?php endif; ?>
                 </div>
 

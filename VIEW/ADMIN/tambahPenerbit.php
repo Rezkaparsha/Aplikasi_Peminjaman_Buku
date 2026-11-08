@@ -1,11 +1,20 @@
 <?php
+// =====================================================================
+// FILE   : VIEW/ADMIN/tambahPenerbit.php  (URL: /admin/tambahPenerbit)
+// FUNGSI : FORM TAMBAH PENERBIT.
+// ALUR   : submit (POST) -> CONTROLLER/c_penerbit.php?aksi=tambah -> simpan -> kembali ke daftar.
+// =====================================================================
+// Mulai session hanya jika belum aktif (mencegah error session already started).
 if (session_status() === PHP_SESSION_NONE) {
+    // Mengaktifkan session (penyimpanan data login sementara di server).
     session_start();
 }
 
 // Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
+    // Jika yang login ternyata berrole 'siswa' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        // Alamat tujuan: halaman siswa terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
         header("Location: " . $kembali);
         exit;
@@ -20,10 +29,15 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
 <!DOCTYPE html>
 <html lang="id">
+<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
+    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
+    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Judul yang tampil di tab browser. -->
     <title>Tambah Penerbit - Perpustakaan Online</title>
+    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
     <style>
         /* Reset & Base Styles */
         * {
@@ -152,6 +166,7 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
         .btn-cancel:hover { background-color: #c0392b; }
     </style>
 </head>
+<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <!-- Sidebar Admin -->
@@ -171,34 +186,41 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
                     <h3>Formulir Data Penerbit</h3>
                 </div>
 
+                <!-- FORM: dikirim (POST) ke c_penerbit.php?aksi=tambah. CATATAN BELAJAR: alamat action memakai path RELATIF (../../CONTROLLER/...). Karena halaman dibuka lewat clean URL /Aplikasi_Peminjaman_Buku/admin/tambahPenerbit, dua tingkat naik berakhir di akar server (/CONTROLLER/...), bukan di folder aplikasi, sehingga kemungkinan besar 404. Form lain memakai path absolut /Aplikasi_Peminjaman_Buku/CONTROLLER/... yang aman. -->
                 <form action="../../CONTROLLER/c_penerbit.php?aksi=tambah" method="POST">
                     
                     <div class="form-group">
                         <label for="nama_penerbit">Nama Penerbit</label>
+                        <!-- Kolom input 'nama_penerbit' (type=text) -> dibaca controller sebagai $_POST['nama_penerbit']. -->
                         <input type="text" id="nama_penerbit" name="nama_penerbit" class="form-control" placeholder="Contoh: Gramedia Pustaka Utama" required>
                     </div>
 
                     <div class="form-group">
                         <label for="alamat">Alamat</label>
+                        <!-- Kolom teks panjang 'alamat' -> dibaca controller sebagai $_POST['alamat']. -->
                         <textarea id="alamat" name="alamat" class="form-control" rows="3" placeholder="Masukkan alamat penerbit..."></textarea>
                     </div>
 
                     <div class="form-group">
                         <label for="kota">Kota</label>
+                        <!-- Kolom input 'kota' (type=text) -> dibaca controller sebagai $_POST['kota']. -->
                         <input type="text" id="kota" name="kota" class="form-control" placeholder="Contoh: Jakarta Pusat">
                     </div>
 
                     <div class="form-group">
                         <label for="telepon">No. Telepon</label>
+                        <!-- Kolom input 'telepon' (type=text) -> dibaca controller sebagai $_POST['telepon']. -->
                         <input type="text" id="telepon" name="telepon" class="form-control" placeholder="Contoh: 02112345678">
                     </div>
 
                     <div class="form-group">
                         <label for="email">Email</label>
+                        <!-- Kolom input 'email' (type=email) -> dibaca controller sebagai $_POST['email']. -->
                         <input type="email" id="email" name="email" class="form-control" placeholder="Contoh: kontak@penerbit.com">
                     </div>
 
                     <div class="action-group">
+                        <!-- Tombol SUBMIT: mengirim form. -->
                         <button type="submit" class="btn btn-submit">Simpan Penerbit</button>
                         <!-- CLEAN URL: Kembali ke Daftar Penerbit -->
                         <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenerbit" class="btn btn-cancel">Batal</a>

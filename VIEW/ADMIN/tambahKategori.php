@@ -1,11 +1,20 @@
 <?php
+// =====================================================================
+// FILE   : VIEW/ADMIN/tambahKategori.php  (URL: /admin/tambahKategori)
+// FUNGSI : FORM TAMBAH KATEGORI.
+// ALUR   : submit (POST) -> CONTROLLER/c_kategori.php?aksi=tambah -> simpan -> kembali ke daftar.
+// =====================================================================
+// Mulai session hanya jika belum aktif (mencegah error session already started).
 if (session_status() === PHP_SESSION_NONE) {
+    // Mengaktifkan session (penyimpanan data login sementara di server).
     session_start();
 }
 
 // Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
+    // Jika yang login ternyata berrole 'siswa' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        // Alamat tujuan: halaman siswa terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
         header("Location: " . $kembali);
         exit;
@@ -20,10 +29,15 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
 <!DOCTYPE html>
 <html lang="id">
+<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
+    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
+    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Judul yang tampil di tab browser. -->
     <title>Tambah Kategori - Perpustakaan Online</title>
+    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
     <style>
         /* Reset & Base Styles */
         * {
@@ -152,6 +166,7 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
         .btn-cancel:hover { background-color: #c0392b; }
     </style>
 </head>
+<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <!-- Sidebar Admin -->
@@ -176,16 +191,19 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
                     
                     <div class="form-group">
                         <label for="nama_kategori">Nama Kategori</label>
+                        <!-- Kolom input 'nama_kategori' (type=text) -> dibaca controller sebagai $_POST['nama_kategori']. -->
                         <input type="text" id="nama_kategori" name="nama_kategori" class="form-control" placeholder="Contoh: Pemrograman, Fiksi, Novel" required>
                     </div>
 
                     <div class="form-group">
                         <label for="deskripsi">Deskripsi Kategori</label>
+                        <!-- Kolom teks panjang 'deskripsi' -> dibaca controller sebagai $_POST['deskripsi']. -->
                         <textarea id="deskripsi" name="deskripsi" class="form-control" rows="4" placeholder="Masukkan keterangan singkat mengenai kategori ini..."></textarea>
                     </div>
 
                     <div class="form-group">
                         <label for="status">Status</label>
+                        <!-- Dropdown 'status': nilai opsi yang dipilih dikirim sebagai kunci 'status'. -->
                         <select id="status" name="status" class="form-control" required>
                             <option value="aktif">Aktif</option>
                             <option value="nonaktif">Nonaktif</option>
@@ -193,6 +211,7 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
                     </div>
 
                     <div class="action-group">
+                        <!-- Tombol SUBMIT: mengirim form. -->
                         <button type="submit" class="btn btn-submit">Simpan Kategori</button>
                         <!-- CLEAN URL: Kembali ke Daftar Kategori -->
                         <a href="/Aplikasi_Peminjaman_Buku/admin/daftarKategori" class="btn btn-cancel">Batal</a>

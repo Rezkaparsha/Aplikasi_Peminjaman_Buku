@@ -1,40 +1,65 @@
 # ----------------------------------------------------------------------
 # 1. SETTING INDEX UTAMA, MENCEGAH DIRECTORY BROWSING & CHARSET
 # ----------------------------------------------------------------------
+# =====================================================================
+# FILE   : .htaccess  (konfigurasi Apache untuk folder aplikasi ini)
+# FUNGSI : 1) menentukan file utama, 2) mencegah folder dilihat, 3) melindungi
+#          folder/file penting, 4) CLEAN URL: mengubah alamat cantik seperti
+#          /admin/daftarBuku menjadi file PHP yang sebenarnya.
+# SYARAT : modul mod_rewrite aktif dan AllowOverride All (default di Laragon).
+# CATATAN: di .htaccess komentar memakai tanda # dan harus berada di awal baris.
+# =====================================================================
+# File yang dibuka pertama kali saat folder diakses (http://localhost/Aplikasi_Peminjaman_Buku).
 DirectoryIndex index.php
+# Matikan daftar isi folder: bila tidak ada index file, pengunjung tidak bisa melihat daftar file.
 Options -Indexes
+# Semua halaman dikirim dengan charset UTF-8.
 AddDefaultCharset UTF-8
 
+# Aturan di dalam blok ini hanya berlaku jika modul mod_rewrite tersedia.
 <IfModule mod_rewrite.c>
+    # Aktifkan mesin penulis-ulang URL (rewrite).
     RewriteEngine On
+    # Folder dasar aplikasi. Nama folder proyek harus sama persis dengan ini.
     RewriteBase /Aplikasi_Peminjaman_Buku/
 
     # Direct Request Root ke index.php
+    # Alamat kosong (akar aplikasi) -> index.php. [L] = aturan terakhir, berhenti di sini.
     RewriteRule ^$ index.php [L]
 
     # Protect internal directories
+    # Blokir akses ke file tersembunyi yang namanya diawali titik (mis. .htaccess, .git).
     <FilesMatch "^\.">
         Require all denied
     </FilesMatch>
+    # Folder DATABASE dan MODEL tidak boleh dibuka dari browser. [F] = Forbidden (403).
     RewriteRule ^(DATABASE|MODEL)(/|$) - [F,L]
 
     # Block execution in ASSETS
+    # Cegah eksekusi file PHP di dalam folder ASSETS (mencegah file berbahaya yang diunggah dijalankan).
     <FilesMatch "\.(php|php5|php7|phps|phtml)$">
+        # Kondisi: hanya jika alamat yang diminta berada di folder /ASSETS/.
         <If "%{REQUEST_URI} =~ m#^/Aplikasi_Peminjaman_Buku/ASSETS/#">
             Require all denied
         </If>
     </FilesMatch>
 
     # Lewati rewriting jika yang diakses adalah file/folder fisik nyata
+    # Jika yang diminta adalah file nyata (-f) ATAU folder nyata (-d)...
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
+    # ...biarkan apa adanya (tidak di-rewrite). Contoh: gambar cover, CSS, atau URL langsung ke file.
     RewriteRule ^ - [L]
 
     # ----------------------------------------------------------------------
     # AUTH
     # ----------------------------------------------------------------------
+    # Alamat tidak cocok file nyata, maka diperiksa aturan di bawah: pola ^...$ = harus sama persis dengan alamat; [QSA] = query string (?id=..) ikut dibawa; [L] = berhenti jika cocok.
+    # DI BAWAH INI semua rute aplikasi (clean URL) dibaca dari atas ke bawah.
     RewriteRule ^login$ VIEW/AUTH/login.php [QSA,L]
+    # URL bersih /register -> VIEW/AUTH/register.php (VIEW langsung).
     RewriteRule ^register$ VIEW/AUTH/register.php [QSA,L]
+    # URL bersih /logout -> CONTROLLER/c_login.php?aksi=logout (controller).
     RewriteRule ^logout$ CONTROLLER/c_login.php?aksi=logout [QSA,L]
 
     # ----------------------------------------------------------------------
@@ -44,40 +69,56 @@ AddDefaultCharset UTF-8
 
     # User
     RewriteRule ^admin/daftarUser$ VIEW/ADMIN/daftarUser.php [QSA,L]
+    # URL bersih /admin/tambahUser -> VIEW/ADMIN/tambahUser.php (VIEW langsung).
     RewriteRule ^admin/tambahUser$ VIEW/ADMIN/tambahUser.php [QSA,L]
+    # URL bersih /admin/editUser -> VIEW/ADMIN/editUser.php (VIEW langsung).
     RewriteRule ^admin/editUser$ VIEW/ADMIN/editUser.php [QSA,L]
 
     # Buku
     RewriteRule ^admin/daftarBuku$ CONTROLLER/c_buku.php?aksi=index [QSA,L]
+    # URL bersih /admin/tambahBuku -> CONTROLLER/c_buku.php?aksi=tambah_view (controller).
     RewriteRule ^admin/tambahBuku$ CONTROLLER/c_buku.php?aksi=tambah_view [QSA,L]
+    # URL bersih /admin/editBuku -> CONTROLLER/c_buku.php?aksi=edit (controller).
     RewriteRule ^admin/editBuku$ CONTROLLER/c_buku.php?aksi=edit [QSA,L]
 
     # Kategori
     RewriteRule ^admin/daftarKategori$ VIEW/ADMIN/daftarKategori.php [QSA,L]
+    # URL bersih /admin/tambahKategori -> VIEW/ADMIN/tambahKategori.php (VIEW langsung).
     RewriteRule ^admin/tambahKategori$ VIEW/ADMIN/tambahKategori.php [QSA,L]
+    # URL bersih /admin/editKategori -> VIEW/ADMIN/editKategori.php (VIEW langsung).
     RewriteRule ^admin/editKategori$ VIEW/ADMIN/editKategori.php [QSA,L]
 
     # Penerbit
     RewriteRule ^admin/daftarPenerbit$ VIEW/ADMIN/daftarPenerbit.php [QSA,L]
+    # URL bersih /admin/tambahPenerbit -> VIEW/ADMIN/tambahPenerbit.php (VIEW langsung).
     RewriteRule ^admin/tambahPenerbit$ VIEW/ADMIN/tambahPenerbit.php [QSA,L]
+    # URL bersih /admin/editPenerbit -> VIEW/ADMIN/editPenerbit.php (VIEW langsung).
     RewriteRule ^admin/editPenerbit$ VIEW/ADMIN/editPenerbit.php [QSA,L]
 
     # Penulis
     RewriteRule ^admin/daftarPenulis$ VIEW/ADMIN/daftarPenulis.php [QSA,L]
+    # URL bersih /admin/tambahPenulis -> VIEW/ADMIN/tambahPenulis.php (VIEW langsung).
     RewriteRule ^admin/tambahPenulis$ VIEW/ADMIN/tambahPenulis.php [QSA,L]
+    # URL bersih /admin/editPenulis -> VIEW/ADMIN/editPenulis.php (VIEW langsung).
     RewriteRule ^admin/editPenulis$ VIEW/ADMIN/editPenulis.php [QSA,L]
 
     # Peminjaman & Histori
     RewriteRule ^admin/daftarPeminjaman$ CONTROLLER/c_peminjaman.php?aksi=admin [QSA,L]
+    # URL bersih /admin/detailPeminjaman -> CONTROLLER/c_peminjaman.php?aksi=detailAdmin (controller).
     RewriteRule ^admin/detailPeminjaman$ CONTROLLER/c_peminjaman.php?aksi=detailAdmin [QSA,L]
+    # URL bersih /admin/historiTransaksi -> CONTROLLER/c_histori.php?aksi=index (controller).
     RewriteRule ^admin/historiTransaksi$ CONTROLLER/c_histori.php?aksi=index [QSA,L]
 
     # ----------------------------------------------------------------------
     # SISWA
     # ----------------------------------------------------------------------
     RewriteRule ^siswa/dashboardSiswa$ VIEW/SISWA/dashboardSiswa.php [QSA,L]
+    # URL bersih /siswa/daftarBuku -> CONTROLLER/c_peminjaman.php?aksi=katalog (controller).
     RewriteRule ^siswa/daftarBuku$ CONTROLLER/c_peminjaman.php?aksi=katalog [QSA,L]
+    # URL bersih /siswa/peminjaman -> CONTROLLER/c_peminjaman.php?aksi=peminjaman_siswa (controller).
     RewriteRule ^siswa/peminjaman$ CONTROLLER/c_peminjaman.php?aksi=peminjaman_siswa [QSA,L]
+    # URL bersih /siswa/detailPeminjaman -> CONTROLLER/c_peminjaman.php?aksi=detail (controller).
     RewriteRule ^siswa/detailPeminjaman$ CONTROLLER/c_peminjaman.php?aksi=detail [QSA,L]
+    # URL bersih /siswa/profil -> VIEW/SISWA/profil.php (VIEW langsung).
     RewriteRule ^siswa/profil$ VIEW/SISWA/profil.php [QSA,L]
 </IfModule>

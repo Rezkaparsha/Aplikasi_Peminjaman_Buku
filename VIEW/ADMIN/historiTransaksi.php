@@ -1,11 +1,20 @@
 <?php
+// =====================================================================
+// FILE   : VIEW/ADMIN/historiTransaksi.php  (URL: /admin/historiTransaksi, lewat c_histori.php)
+// FUNGSI : HISTORI TRANSAKSI admin: tabel transaksi yang sudah selesai + total denda.
+// DATA   : M_Peminjaman::getHistoriTransaksi() (view mengambil sendiri; $daftarHistori dari c_histori tidak dipakai).
+// =====================================================================
+// Mulai session hanya jika belum aktif (mencegah error session already started).
 if (session_status() === PHP_SESSION_NONE) {
+    // Mengaktifkan session (penyimpanan data login sementara di server).
     session_start();
 }
 
 // 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
+    // Jika yang login ternyata berrole 'siswa' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        // Alamat tujuan: halaman siswa terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
         header("Location: " . $kembali);
         exit;
@@ -19,20 +28,28 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
 // 3. Panggil Model Langsung di View
 require_once __DIR__ . "/../../MODEL/m_peminjaman.php";
+// Buat objek dari class M_Peminjaman; variabel $peminjamanModel dipakai untuk memanggil fungsi-fungsinya.
 $peminjamanModel = new M_Peminjaman();
+// Panggil method getHistoriTransaksi() milik objek $peminjamanModel; hasilnya disimpan di $dataHistori.
 $dataHistori = $peminjamanModel->getHistoriTransaksi();
 
 // Inisialisasi variabel denda
+// Penampung total seluruh denda; diisi (dijumlahkan) di dalam perulangan tabel di bawah.
 $totalSemuaDenda = 0;
 ?>
 <!DOCTYPE html>
 <html lang="id">
 
+<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
+    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
+    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Judul yang tampil di tab browser. -->
     <title>Histori Transaksi - Panel Admin</title>
 
+    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
     <style>
         * {
             box-sizing: border-box;
@@ -180,6 +197,7 @@ $totalSemuaDenda = 0;
     </style>
 </head>
 
+<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <!-- Sidebar Admin -->
@@ -199,7 +217,9 @@ $totalSemuaDenda = 0;
                 </div>
 
                 <div class="table-responsive">
+                    <!-- TABEL data. -->
                     <table class="data-table">
+                        <!-- Judul kolom tabel. -->
                         <thead>
                             <tr>
                                 <th>No</th>
@@ -213,13 +233,18 @@ $totalSemuaDenda = 0;
                                 <th>Nominal Denda</th>
                             </tr>
                         </thead>
+                        <!-- Isi tabel: satu baris (<tr>) untuk setiap data. -->
                         <tbody>
+                            <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($dataHistori) -->
                             <?php if (!empty($dataHistori)): ?>
                                 <?php $no = 1; ?>
+                                <!-- PERULANGAN: blok di bawah (sampai endforeach) diulang untuk setiap elemen $dataHistori; elemen aktif ada di $row. -->
                                 <?php foreach ($dataHistori as $row): ?>
                                     <?php $totalSemuaDenda += (int)($row['denda'] ?? 0); ?>
                                     <tr>
+                                        <?php /* Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. */ ?>
                                         <td><?= $no++ ?></td>
+                                        <?php /* htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). */ ?>
                                         <td style="font-weight: bold; color: #3498db;">#<?= htmlspecialchars($row['id_peminjaman'] ?? '-') ?></td>
                                         <td>
                                             <strong><?= htmlspecialchars($row['nama_siswa'] ?? '-') ?></strong><br>
@@ -231,31 +256,39 @@ $totalSemuaDenda = 0;
                                         <td><?= !empty($row['tanggal_pinjam']) ? date('d M Y', strtotime($row['tanggal_pinjam'])) : '-' ?></td>
                                         <td><?= !empty($row['tanggal_dikembalikan']) ? date('d M Y', strtotime($row['tanggal_dikembalikan'])) : '-' ?></td>
                                         <td>
+                                            <?php /* KONDISI: blok di bawah (sampai else/endif) hanya tampil jika (int)($row['denda'] ?? 0) > 0 */ ?>
                                             <?php if ((int)($row['denda'] ?? 0) > 0): ?>
                                                 <span class="badge badge-danger"><?= htmlspecialchars($row['jenis_denda'] ?? 'Denda') ?></span>
+                                            <?php /* ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. */ ?>
                                             <?php else: ?>
                                                 <span class="badge badge-success">Tepat Waktu</span>
+                                            <?php /* Akhir kondisi if. */ ?>
                                             <?php endif; ?>
                                         </td>
                                         <td style="font-weight: bold; color: <?= (int)($row['denda'] ?? 0) > 0 ? '#e74c3c' : '#2ecc71' ?>;">
                                             Rp <?= number_format((int)($row['denda'] ?? 0), 0, ',', '.') ?>
                                         </td>
                                     </tr>
+                                <?php /* Akhir perulangan foreach. */ ?>
                                 <?php endforeach; ?>
+                            <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
                             <?php else: ?>
                                 <tr>
                                     <td colspan="9" style="text-align: center; padding: 30px; color: #7f8c8d;">Belum ada histori transaksi pengembalian buku.</td>
                                 </tr>
+                            <!-- Akhir kondisi if. -->
                             <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
 
+                <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($dataHistori) -->
                 <?php if (!empty($dataHistori)): ?>
                     <div style="margin-top: 20px; padding: 15px; background: #fdfefe; border: 1px solid #e5e8e8; border-radius: 5px; text-align: right;">
                         <span style="font-size: 14px; color: #7f8c8d;">Total Keseluruhan Denda Terkumpul:</span>
                         <h3 style="color: #c0392b; display: inline-block; margin-left: 10px;">Rp <?= number_format($totalSemuaDenda, 0, ',', '.') ?></h3>
                     </div>
+                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
 
             </div>

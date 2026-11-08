@@ -1,11 +1,20 @@
 <?php
+// =====================================================================
+// FILE   : VIEW/ADMIN/daftarUser.php  (URL: /admin/daftarUser)
+// FUNGSI : DAFTAR USER admin: tabel user + pencarian + pagination (10 data/halaman) + tombol tambah/edit/hapus.
+// DATA   : dari model Users (search() atau getAll()). Hapus user -> konfirmasi JS -> CONTROLLER/c_user.php?aksi=hapus.
+// =====================================================================
+// Mulai session hanya jika belum aktif (mencegah error session already started).
 if (session_status() === PHP_SESSION_NONE) {
+    // Mengaktifkan session (penyimpanan data login sementara di server).
     session_start();
 }
 
 // 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
+    // Jika yang login ternyata berrole 'siswa' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        // Alamat tujuan: halaman siswa terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
         header("Location: " . $kembali);
         exit;
@@ -19,13 +28,16 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
 // 3. Panggil Model Users
 require_once __DIR__ . "/../../MODEL/m_users.php";
+// Buat objek dari class Users; variabel $userModel dipakai untuk memanggil fungsi-fungsinya.
 $userModel = new Users();
 
 // ==========================================
 // LOGIKA PENCARIAN & AMBIL DATA
 // ==========================================
+// Kata kunci dari kotak pencarian (?search=).
 $keyword = trim($_GET['search'] ?? '');
 
+// Ada kata kunci -> cari di database; kosong -> tampilkan semua user.
 if (!empty($keyword)) {
     // Gunakan fungsi search jika ada inputan pencarian
     $daftarUser = $userModel->search($keyword);
@@ -38,36 +50,50 @@ if (!empty($keyword)) {
 // LOGIKA PAGINATION (10 Data per Halaman)
 // ==========================================
 $limit = 10;
+// Total seluruh data (count = jumlah elemen array).
 $total_data = count($daftarUser);
+// Jumlah halaman = total data / limit, dibulatkan ke atas (ceil).
 $total_pages = ceil($total_data / $limit);
 
+// Nomor halaman aktif dari URL (?page=); default halaman 1.
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+// Jaga nomor halaman: tidak boleh kurang dari 1.
 if ($page < 1) $page = 1;
+// Jaga nomor halaman: tidak boleh melebihi halaman terakhir.
 if ($page > $total_pages && $total_pages > 0) $page = $total_pages;
 
+// Posisi data pertama pada halaman aktif (offset).
 $offset = ($page - 1) * $limit;
 
 // Potong array data sesuai halaman aktif
 $userPaginated = array_slice($daftarUser, $offset, $limit);
 
 // Fungsi untuk menyambungkan query string search pada pagination
+// Sambungan ?search=... untuk link pagination agar pencarian tidak hilang saat pindah halaman (urlencode = aman untuk URL).
 $searchQuery = !empty($keyword) ? '&search=' . urlencode($keyword) : '';
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
 
+<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
+    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
+    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Judul yang tampil di tab browser. -->
     <title>Daftar User - Perpustakaan Online</title>
     
     <!-- ASSETS PENDUKUNG -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memuat Font Awesome (kumpulan ikon, dipakai lewat class fa-...). -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Memuat SweetAlert2 (dialog/popup konfirmasi yang lebih bagus dari alert biasa). -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
+<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body class="flex h-screen bg-slate-50 font-sans text-slate-800 antialiased overflow-hidden">
 
     <!-- Sidebar Admin -->
@@ -96,17 +122,21 @@ $searchQuery = !empty($keyword) ? '&search=' . urlencode($keyword) : '';
             <?php if (isset($_SESSION['error'])): ?>
                 <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg flex items-center gap-3 shadow-sm">
                     <div class="text-red-500"><i class="fas fa-exclamation-circle text-xl"></i></div>
+                    <!-- htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). -->
                     <div class="text-red-700 font-medium text-sm"><?= htmlspecialchars($_SESSION['error']) ?></div>
                 </div>
                 <?php unset($_SESSION['error']); ?>
+            <!-- Akhir kondisi if. -->
             <?php endif; ?>
 
+            <!-- PESAN SUKSES (flash message): tampil bila controller mengisi $_SESSION['success']; langsung dihapus setelah tampil. -->
             <?php if (isset($_SESSION['success'])): ?>
                 <div class="mb-6 bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-lg flex items-center gap-3 shadow-sm">
                     <div class="text-emerald-500"><i class="fas fa-check-circle text-xl"></i></div>
                     <div class="text-emerald-700 font-medium text-sm"><?= htmlspecialchars($_SESSION['success']) ?></div>
                 </div>
                 <?php unset($_SESSION['success']); ?>
+            <!-- Akhir kondisi if. -->
             <?php endif; ?>
 
             <!-- Card Utama -->
@@ -123,6 +153,7 @@ $searchQuery = !empty($keyword) ? '&search=' . urlencode($keyword) : '';
                         <!-- Form Pencarian -->
                         <form action="" method="GET" class="flex items-center relative w-full lg:w-64">
                             <i class="fas fa-search absolute left-3 text-slate-400 text-sm"></i>
+                            <!-- Kolom input 'search' (type=text) -> dibaca controller sebagai $_GET['search']. -->
                             <input type="text" name="search" value="<?= htmlspecialchars($keyword) ?>" placeholder="Cari NIS/Nama/Username..." 
                                 class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all">
                             
@@ -131,6 +162,7 @@ $searchQuery = !empty($keyword) ? '&search=' . urlencode($keyword) : '';
                                 <a href="?" class="absolute right-3 text-slate-400 hover:text-red-500 transition-colors">
                                     <i class="fas fa-times"></i>
                                 </a>
+                            <!-- Akhir kondisi if. -->
                             <?php endif; ?>
                         </form>
                         <button type="button" onclick="document.querySelector('form').submit()" class="hidden"></button>
@@ -144,7 +176,9 @@ $searchQuery = !empty($keyword) ? '&search=' . urlencode($keyword) : '';
 
                 <!-- Tabel Data -->
                 <div class="overflow-x-auto w-full">
+                    <!-- TABEL data. -->
                     <table class="w-full text-left border-collapse whitespace-nowrap">
+                        <!-- Judul kolom tabel. -->
                         <thead>
                             <tr class="bg-slate-50/50 text-slate-500 text-[11px] uppercase tracking-wider border-b border-slate-200">
                                 <th class="px-6 py-4 font-semibold w-16 text-center">No</th>
@@ -156,11 +190,15 @@ $searchQuery = !empty($keyword) ? '&search=' . urlencode($keyword) : '';
                                 <th class="px-6 py-4 font-semibold text-center w-32">Aksi</th>
                             </tr>
                         </thead>
+                        <!-- Isi tabel: satu baris (<tr>) untuk setiap data. -->
                         <tbody class="divide-y divide-slate-100 text-sm">
+                            <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($userPaginated) -->
                             <?php if (!empty($userPaginated)): ?>
                                 <?php $no = $offset + 1; ?>
+                                <!-- PERULANGAN: blok di bawah (sampai endforeach) diulang untuk setiap elemen $userPaginated; elemen aktif ada di $user. -->
                                 <?php foreach ($userPaginated as $user): ?>
                                     <tr class="hover:bg-slate-50/70 transition-colors">
+                                        <?php /* Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. */ ?>
                                         <td class="px-6 py-4 text-center text-slate-500"><?= $no++ ?></td>
                                         <td class="px-6 py-4 font-bold text-slate-700"><?= htmlspecialchars($user['nis_nip'] ?? '-') ?></td>
                                         <td class="px-6 py-4 text-slate-600 font-medium"><?= htmlspecialchars($user['nama_lengkap']) ?></td>
@@ -200,19 +238,24 @@ $searchQuery = !empty($keyword) ? '&search=' . urlencode($keyword) : '';
                                             </div>
                                         </td>
                                     </tr>
+                                <?php /* Akhir perulangan foreach. */ ?>
                                 <?php endforeach; ?>
+                            <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
                             <?php else: ?>
                                 <tr>
                                     <td colspan="7" class="px-6 py-12 text-center text-slate-400">
                                         <div class="flex flex-col items-center justify-center">
                                             <i class="fas fa-folder-open text-4xl mb-3 text-slate-300"></i>
                                             <p class="font-medium">Tidak ada data pengguna ditemukan.</p>
+                                            <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($keyword) -->
                                             <?php if (!empty($keyword)): ?>
                                                 <p class="text-xs mt-1">Coba gunakan kata kunci lain untuk mencari.</p>
+                                            <!-- Akhir kondisi if. -->
                                             <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>
+                            <!-- Akhir kondisi if. -->
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -231,28 +274,37 @@ $searchQuery = !empty($keyword) ? '&search=' . urlencode($keyword) : '';
                                 <!-- Tombol Prev -->
                                 <?php if ($page > 1): ?>
                                     <a href="?page=<?= $page - 1 ?><?= $searchQuery ?>" class="px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">Prev</a>
+                                <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
                                 <?php else: ?>
                                     <span class="px-3 py-1.5 text-sm font-medium text-slate-300 cursor-not-allowed">Prev</span>
+                                <!-- Akhir kondisi if. -->
                                 <?php endif; ?>
 
                                 <!-- Angka Halaman -->
                                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                                    <?php /* KONDISI: blok di bawah (sampai else/endif) hanya tampil jika $i === $page */ ?>
                                     <?php if ($i === $page): ?>
                                         <span class="px-3 py-1.5 text-sm font-bold bg-blue-600 text-white rounded-md shadow-sm"><?= $i ?></span>
+                                    <?php /* ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. */ ?>
                                     <?php else: ?>
                                         <a href="?page=<?= $i ?><?= $searchQuery ?>" class="px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-md transition-colors"><?= $i ?></a>
+                                    <?php /* Akhir kondisi if. */ ?>
                                     <?php endif; ?>
                                 <?php endfor; ?>
 
                                 <!-- Tombol Next -->
                                 <?php if ($page < $total_pages): ?>
                                     <a href="?page=<?= $page + 1 ?><?= $searchQuery ?>" class="px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">Next</a>
+                                <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
                                 <?php else: ?>
                                     <span class="px-3 py-1.5 text-sm font-medium text-slate-300 cursor-not-allowed">Next</span>
+                                <!-- Akhir kondisi if. -->
                                 <?php endif; ?>
                             </div>
+                        <!-- Akhir kondisi if. -->
                         <?php endif; ?>
                     </div>
+                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
 
             </div>
@@ -261,7 +313,9 @@ $searchQuery = !empty($keyword) ? '&search=' . urlencode($keyword) : '';
 
     <!-- Script SweetAlert2 untuk Konfirmasi Hapus -->
     <script>
+        // FUNGSI konfirmasiHapus(id): menampilkan dialog 'Yakin hapus?'. Jika pengguna menekan Ya, browser dipindah ke controller dengan ?aksi=hapus&id_...=ID sehingga data dihapus.
         function konfirmasiHapus(id_user) {
+            // Tampilkan dialog SweetAlert2 (popup).
             Swal.fire({
                 title: 'Hapus User?',
                 text: "Data user ini akan dihapus permanen. Tindakan ini tidak dapat dibatalkan!",
@@ -274,7 +328,9 @@ $searchQuery = !empty($keyword) ? '&search=' . urlencode($keyword) : '';
                 reverseButtons: true,
                 borderRadius: '1rem'
             }).then((result) => {
+                // Jika pengguna menekan tombol konfirmasi (Ya)...
                 if (result.isConfirmed) {
+                    // Pindah halaman ke alamat ini (di sini memanggil controller).
                     window.location.href = "/Aplikasi_Peminjaman_Buku/CONTROLLER/c_user.php?aksi=hapus&id_user=" + id_user;
                 }
             });

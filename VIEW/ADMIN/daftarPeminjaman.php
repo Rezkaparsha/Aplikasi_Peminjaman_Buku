@@ -1,11 +1,20 @@
 <?php
+// =====================================================================
+// FILE   : VIEW/ADMIN/daftarPeminjaman.php  (URL: /admin/daftarPeminjaman, lewat c_peminjaman.php?aksi=admin)
+// FUNGSI : DAFTAR PEMINJAMAN admin: semua peminjaman semua siswa + pagination.
+// DATA   : M_Peminjaman::getSemuaPeminjaman().
+// =====================================================================
+// Mulai session hanya jika belum aktif (mencegah error session already started).
 if (session_status() === PHP_SESSION_NONE) {
+    // Mengaktifkan session (penyimpanan data login sementara di server).
     session_start();
 }
 
 // Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
+    // Jika yang login ternyata berrole 'siswa' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        // Alamat tujuan: halaman siswa terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
         header("Location: " . $kembali);
         exit;
@@ -19,20 +28,28 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
 // Panggil Model Peminjaman
 require_once __DIR__ . "/../../MODEL/m_peminjaman.php";
+// Buat objek dari class M_Peminjaman; variabel $peminjamanModel dipakai untuk memanggil fungsi-fungsinya.
 $peminjamanModel = new M_Peminjaman();
+// Ambil semua peminjaman (JOIN ke users dan detail, lihat model).
 $dataPeminjaman = $peminjamanModel->getSemuaPeminjaman();
 
 // ==========================================
 // LOGIKA PAGINATION (10 Data per Halaman)
 // ==========================================
 $limit = 10;
+// Total seluruh data (count = jumlah elemen array).
 $total_data = count($dataPeminjaman);
+// Jumlah halaman = total data / limit, dibulatkan ke atas (ceil).
 $total_pages = ceil($total_data / $limit);
 
+// Nomor halaman aktif dari URL (?page=); default halaman 1.
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+// Jaga nomor halaman: tidak boleh kurang dari 1.
 if ($page < 1) $page = 1;
+// Jaga nomor halaman: tidak boleh melebihi halaman terakhir.
 if ($page > $total_pages && $total_pages > 0) $page = $total_pages;
 
+// Posisi data pertama pada halaman aktif (offset).
 $offset = ($page - 1) * $limit;
 
 // Potong array data sesuai halaman aktif
@@ -42,9 +59,13 @@ $dataPaginated = array_slice($dataPeminjaman, $offset, $limit);
 <!DOCTYPE html>
 <html lang="id">
 
+<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
+    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
+    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Judul yang tampil di tab browser. -->
     <title>Daftar Peminjaman - Perpustakaan Online</title>
         <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -52,6 +73,7 @@ $dataPaginated = array_slice($dataPeminjaman, $offset, $limit);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
     <style>
         /* Reset & Base Styles */
         * {
@@ -263,6 +285,7 @@ $dataPaginated = array_slice($dataPeminjaman, $offset, $limit);
     </style>
 </head>
 
+<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <!-- Sidebar Admin -->
@@ -281,16 +304,20 @@ $dataPaginated = array_slice($dataPeminjaman, $offset, $limit);
             <!-- Notifikasi Pesan -->
             <?php if (isset($_SESSION['success'])): ?>
                 <div class="alert alert-success">
+                    <!-- htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). -->
                     <?= htmlspecialchars($_SESSION['success']) ?>
                 </div>
                 <?php unset($_SESSION['success']); ?>
+            <!-- Akhir kondisi if. -->
             <?php endif; ?>
 
+            <!-- PESAN ERROR (flash message): tampil bila controller mengisi $_SESSION['error']; setelah tampil dihapus (unset) agar tidak muncul lagi saat halaman dimuat ulang. -->
             <?php if (isset($_SESSION['error'])): ?>
                 <div class="alert alert-error">
                     <?= htmlspecialchars($_SESSION['error']) ?>
                 </div>
                 <?php unset($_SESSION['error']); ?>
+            <!-- Akhir kondisi if. -->
             <?php endif; ?>
 
             <div class="card">
@@ -301,9 +328,12 @@ $dataPaginated = array_slice($dataPeminjaman, $offset, $limit);
                     </div>
                 </div>
 
+                <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($dataPeminjaman) -->
                 <?php if (!empty($dataPeminjaman)): ?>
                     <div class="table-responsive">
+                        <!-- TABEL data. -->
                         <table class="data-table">
+                            <!-- Judul kolom tabel. -->
                             <thead>
                                 <tr>
                                     <th>NO</th>
@@ -316,12 +346,16 @@ $dataPaginated = array_slice($dataPeminjaman, $offset, $limit);
                                     <th>AKSI</th>
                                 </tr>
                             </thead>
+                            <!-- Isi tabel: satu baris (<tr>) untuk setiap data. -->
                             <tbody>
+                                <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($dataPaginated) -->
                                 <?php if (!empty($dataPaginated)): ?>
                                     <?php $no = $offset + 1; ?> 
                                     
+                                    <!-- PERULANGAN: blok di bawah (sampai endforeach) diulang untuk setiap elemen $dataPaginated; elemen aktif ada di $row. -->
                                     <?php foreach ($dataPaginated as $row): ?>
                                         <tr>
+                                            <?php /* Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. */ ?>
                                             <td><?= $no++ ?></td>
                                             <td style="font-weight: bold; color: #3498db;">#<?= htmlspecialchars($row['id_peminjaman']) ?></td>
                                             <td>
@@ -346,7 +380,9 @@ $dataPaginated = array_slice($dataPeminjaman, $offset, $limit);
                                                 <a href="/Aplikasi_Peminjaman_Buku/admin/detailPeminjaman?id_peminjaman=<?= $row['id_peminjaman'] ?>" class="btn btn-info">Detail</a>
                                             </td>
                                         </tr>
+                                    <?php /* Akhir perulangan foreach. */ ?>
                                     <?php endforeach; ?>
+                                <!-- Akhir kondisi if. -->
                                 <?php endif; ?>
                             </tbody>
                         </table>
@@ -358,6 +394,7 @@ $dataPaginated = array_slice($dataPeminjaman, $offset, $limit);
                             <!-- Tombol Prev -->
                             <?php if ($page > 1): ?>
                                 <li><a href="?page=<?= $page - 1 ?>">« Prev</a></li>
+                            <!-- Akhir kondisi if. -->
                             <?php endif; ?>
 
                             <!-- Angka Halaman -->
@@ -372,15 +409,19 @@ $dataPaginated = array_slice($dataPeminjaman, $offset, $limit);
                             <!-- Tombol Next -->
                             <?php if ($page < $total_pages): ?>
                                 <li><a href="?page=<?= $page + 1 ?>">Next »</a></li>
+                            <!-- Akhir kondisi if. -->
                             <?php endif; ?>
                         </ul>
+                    <!-- Akhir kondisi if. -->
                     <?php endif; ?>
 
+                <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
                 <?php else: ?>
                     <div class="text-center">
                         <span style="font-size: 40px; display: block; margin-bottom: 10px;">📋</span>
                         Belum ada pengajuan peminjaman saat ini.
                     </div>
+                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
 
             </div>

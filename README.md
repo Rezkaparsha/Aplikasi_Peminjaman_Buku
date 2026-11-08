@@ -94,6 +94,7 @@ Admin dapat:
 - Denda keterlambatan: **Rp 1.000 per hari** sejak melewati batas pengembalian
 - Denda tambahan untuk buku Rusak/Hilang (nominal diisi admin)
 - Denda dicatat di tabel `denda` dan di histori transaksi
+- Catatan: halaman untuk membayar/mengelola denda belum tersedia di antarmuka; kerangka `c_denda.php` dan `m_denda.php` ada tetapi belum tersambung ke rute
 
 ### 📋 Histori Transaksi
 
@@ -282,6 +283,6 @@ Aplikasi Peminjaman Buku
 
 # 👨‍💻 Pengembang
 
-**Rezka Parsha Aqeela**
+**Rezka Parsha**
 
 Proyek ini dibuat sebagai media pembelajaran pengembangan aplikasi perpustakaan berbasis web menggunakan konsep Object-Oriented Programming (OOP) dan arsitektur MVC (Model View Controller) untuk menghasilkan kode yang lebih terstruktur, mudah dikembangkan, dan mudah dipelihara.

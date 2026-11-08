@@ -1,11 +1,20 @@
 <?php
+// =====================================================================
+// FILE   : VIEW/ADMIN/editPenerbit.php  (URL: /admin/editPenerbit?id_penerbit=..)
+// FUNGSI : FORM UBAH PENERBIT.
+// ALUR   : data lama diisikan ke form -> submit (POST) -> CONTROLLER/c_penerbit.php?aksi=update.
+// =====================================================================
+// Mulai session hanya jika belum aktif (mencegah error session already started).
 if (session_status() === PHP_SESSION_NONE) {
+    // Mengaktifkan session (penyimpanan data login sementara di server).
     session_start();
 }
 
 // 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
+    // Jika yang login ternyata berrole 'siswa' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        // Alamat tujuan: halaman siswa terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
         header("Location: " . $kembali);
         exit;
@@ -28,7 +37,9 @@ if ($idPenerbit <= 0) {
 
 // 4. Panggil Model Data Penerbit
 require_once __DIR__ . "/../../MODEL/m_penerbit.php";
+// Buat objek dari class Penerbit; variabel $penerbitModel dipakai untuk memanggil fungsi-fungsinya.
 $penerbitModel = new Penerbit();
+// Panggil method getById() milik objek $penerbitModel; hasilnya disimpan di $dataPenerbit.
 $dataPenerbit = $penerbitModel->getById($idPenerbit);
 
 if (!$dataPenerbit) {
@@ -40,10 +51,15 @@ if (!$dataPenerbit) {
 
 <!DOCTYPE html>
 <html lang="id">
+<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
+    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
+    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Judul yang tampil di tab browser. -->
     <title>Edit Penerbit - Perpustakaan Online</title>
+    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
     <style>
         /* Reset & Base Styles */
         * {
@@ -182,6 +198,7 @@ if (!$dataPenerbit) {
         }
     </style>
 </head>
+<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <!-- Sidebar Admin -->
@@ -201,38 +218,47 @@ if (!$dataPenerbit) {
                     <h3>Formulir Perubahan Penerbit</h3>
                 </div>
 
+                <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($dataPenerbit) -->
                 <?php if (!empty($dataPenerbit)): ?>
 
+                    <!-- FORM: saat disubmit, data dikirim dengan method POST ke /Aplikasi_Peminjaman_Buku/CONTROLLER/c_penerbit.php?aksi=update. Atribut name pada setiap input menjadi kunci $_POST['...'] di controller. -->
                     <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_penerbit.php?aksi=update" method="POST">
                         
+                        <!-- Input TERSEMBUNYI 'id_penerbit': membawa data ke controller tanpa ditampilkan ($_POST['id_penerbit']). -->
                         <input type="hidden" name="id_penerbit" value="<?= htmlspecialchars($dataPenerbit['id_penerbit']) ?>">
                         
                         <div class="form-group">
                             <label for="nama_penerbit">Nama Penerbit</label>
+                            <!-- Kolom input 'nama_penerbit' (type=text) -> dibaca controller sebagai $_POST['nama_penerbit']. -->
                             <input type="text" id="nama_penerbit" name="nama_penerbit" class="form-control" value="<?= htmlspecialchars($dataPenerbit['nama_penerbit']) ?>" required>
                         </div>
 
                         <div class="form-group">
                             <label for="alamat">Alamat</label>
+                            <!-- Kolom teks panjang 'alamat' -> dibaca controller sebagai $_POST['alamat']. -->
                             <textarea id="alamat" name="alamat" class="form-control" rows="3"><?= htmlspecialchars($dataPenerbit['alamat'] ?? '') ?></textarea>
                         </div>
 
                         <div class="form-group">
                             <label for="kota">Kota</label>
+                            <!-- Kolom input 'kota' (type=text) -> dibaca controller sebagai $_POST['kota']. -->
                             <input type="text" id="kota" name="kota" class="form-control" value="<?= htmlspecialchars($dataPenerbit['kota'] ?? '') ?>">
                         </div>
 
                         <div class="form-group">
                             <label for="telepon">No. Telepon</label>
+                            <!-- Kolom input 'telepon' (type=text) -> dibaca controller sebagai $_POST['telepon']. -->
                             <input type="text" id="telepon" name="telepon" class="form-control" value="<?= htmlspecialchars($dataPenerbit['telepon'] ?? '') ?>">
                         </div>
 
                         <div class="form-group">
                             <label for="email">Email</label>
+                            <!-- Kolom input 'email' (type=email) -> dibaca controller sebagai $_POST['email']. -->
                             <input type="email" id="email" name="email" class="form-control" value="<?= htmlspecialchars($dataPenerbit['email'] ?? '') ?>">
                         </div>
 
                         <div class="action-group">
+                            <!-- Tombol SUBMIT: mengirim form. -->
                             <button type="submit" class="btn btn-submit">Simpan Perubahan</button>
                             <!-- CLEAN URL: Kembali ke Daftar Penerbit -->
                             <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenerbit" class="btn btn-cancel">Batal</a>
@@ -240,6 +266,7 @@ if (!$dataPenerbit) {
 
                     </form>
 
+                <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
                 <?php else: ?>
 
                     <div class="alert-error">Data penerbit tidak ditemukan.</div>
@@ -248,6 +275,7 @@ if (!$dataPenerbit) {
                         <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenerbit" class="btn btn-cancel" style="display: inline-block;">Kembali ke Daftar Penerbit</a>
                     </div>
 
+                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
 
             </div>

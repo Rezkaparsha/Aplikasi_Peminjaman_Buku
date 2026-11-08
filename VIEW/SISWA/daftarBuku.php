@@ -1,5 +1,12 @@
 <?php
+// =====================================================================
+// FILE   : VIEW/SISWA/daftarBuku.php  (URL: /siswa/daftarBuku, lewat c_peminjaman.php?aksi=katalog)
+// FUNGSI : KATALOG BUKU siswa: filter (GET) + daftar buku dengan checkbox, kolom jumlah, dan bar bawah untuk mengajukan peminjaman.
+// ALUR   : siswa mencentang buku & isi jumlah -> submit (POST) -> CONTROLLER/c_peminjaman.php?aksi=tambah (id_buku[] dan jumlah[]).
+// =====================================================================
+// Mulai session hanya jika belum aktif (mencegah error session already started).
 if (session_status() === PHP_SESSION_NONE) {
+    // Mengaktifkan session (penyimpanan data login sementara di server).
     session_start();
 }
 
@@ -7,6 +14,7 @@ if (session_status() === PHP_SESSION_NONE) {
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'siswa') {
     // Jika admin nyasar, kembalikan ke halaman admin terakhir!
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        // Alamat tujuan: halaman admin terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_admin'] ?? '/Aplikasi_Peminjaman_Buku/admin/dashboardAdmin';
         header("Location: " . $kembali);
         exit;
@@ -24,24 +32,34 @@ $id_user = (int)$_SESSION['id_user'];
 
 // Menggunakan Model
 require_once __DIR__ . "/../../MODEL/m_buku.php";
+// Memuat file model m_kategori.php (berisi class untuk query database).
 require_once __DIR__ . "/../../MODEL/m_kategori.php";
+// Memuat file model m_penulis.php (berisi class untuk query database).
 require_once __DIR__ . "/../../MODEL/m_penulis.php";
+// Memuat file model m_penerbit.php (berisi class untuk query database).
 require_once __DIR__ . "/../../MODEL/m_penerbit.php";
 
+// Buat objek dari class Buku; variabel $bukuModel dipakai untuk memanggil fungsi-fungsinya.
 $bukuModel = new Buku();
+// Buat objek dari class Kategori; variabel $kategoriModel dipakai untuk memanggil fungsi-fungsinya.
 $kategoriModel = new Kategori();
+// Buat objek dari class Penulis; variabel $penulisModel dipakai untuk memanggil fungsi-fungsinya.
 $penulisModel = new Penulis();
+// Buat objek dari class Penerbit; variabel $penerbitModel dipakai untuk memanggil fungsi-fungsinya.
 $penerbitModel = new Penerbit();
 
 // Ambil data untuk opsi dropdown filter
 $daftarKategori = $kategoriModel->getAll();
 $daftarPenulis  = $penulisModel->getAll();
+// Panggil method getAll() milik objek $penerbitModel; hasilnya disimpan di $daftarPenerbit.
 $daftarPenerbit = $penerbitModel->getAll();
 
 // Tangkap nilai input GET jika ada
 $keyword     = trim($_GET['keyword'] ?? '');
+// Baca nilai dari URL ($_GET) atau form ($_POST); '?? nilai' = cadangan jika datanya tidak ada.
 $id_kategori = $_GET['id_kategori'] ?? '';
 $id_penulis  = $_GET['id_penulis'] ?? '';
+// Baca nilai dari URL ($_GET) atau form ($_POST); '?? nilai' = cadangan jika datanya tidak ada.
 $id_penerbit = $_GET['id_penerbit'] ?? '';
 
 // Eksekusi fungsi pencarian & filter
@@ -59,13 +77,19 @@ $daftarBuku = array_values($daftarBuku);
 // LOGIKA PAGINATION (12 Buku per Halaman)
 // ==========================================
 $limit = 12;
+// Total seluruh data (count = jumlah elemen array).
 $total_data = count($daftarBuku);
+// Jumlah halaman = total data / limit, dibulatkan ke atas (ceil).
 $total_pages = ceil($total_data / $limit);
 
+// Nomor halaman aktif dari URL (?page=); default halaman 1.
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+// Jaga nomor halaman: tidak boleh kurang dari 1.
 if ($page < 1) $page = 1;
+// Jaga nomor halaman: tidak boleh melebihi halaman terakhir.
 if ($page > $total_pages && $total_pages > 0) $page = $total_pages;
 
+// Posisi data pertama pada halaman aktif (offset).
 $offset = ($page - 1) * $limit;
 
 // Potong array data sesuai halaman aktif
@@ -75,15 +99,21 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
 <!DOCTYPE html>
 <html lang="id">
 
+<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
+    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
+    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Judul yang tampil di tab browser. -->
     <title>Katalog Buku - Perpustakaan</title>
 
     <!-- Bootstrap 5 CSS & FontAwesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Memuat Font Awesome (kumpulan ikon, dipakai lewat class fa-...). -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="website icon" href="/Aplikasi_Peminjaman_Buku/ASSETS/logoApp.jpg">
+    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
     <style>
         /* 1. Kunci Layar Utama */
         * {
@@ -254,6 +284,7 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
     </style>
 </head>
 
+<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <div class="app-wrapper">
@@ -280,52 +311,67 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                 <!-- Alert Notifikasi -->
                 <?php if (isset($_SESSION['error'])): ?>
                     <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+                        <!-- htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). -->
                         <i class="fa-solid fa-circle-exclamation me-2"></i><?= htmlspecialchars($_SESSION['error']) ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                     <?php unset($_SESSION['error']); ?>
+                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
 
                 <!-- FORM PENCARIAN & FILTER -->
                 <div class="filter-card">
+                    <!-- FORM PENCARIAN/FILTER: dikirim dengan method GET ke halaman ini sendiri; nilainya muncul di URL dan dibaca controller/view lewat $_GET['...']. -->
                     <form method="GET" action="" class="row g-3 align-items-center">
                         <div class="col-12 col-md-4">
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
+                                <!-- Kolom input 'keyword' (type=text) -> dibaca controller sebagai $_GET['keyword']. -->
                                 <input type="text" name="keyword" class="form-control border-start-0" placeholder="Cari judul buku..." value="<?= htmlspecialchars($_GET['keyword'] ?? '') ?>">
                             </div>
                         </div>
                         <div class="col-12 col-md-2">
+                            <!-- Dropdown 'id_kategori': nilai opsi yang dipilih dikirim sebagai kunci 'id_kategori'. -->
                             <select name="id_kategori" class="form-select">
                                 <option value="">Semua Kategori</option>
+                                <!-- PERULANGAN: blok di bawah (sampai endforeach) diulang untuk setiap elemen $daftarKategori; elemen aktif ada di $kat. -->
                                 <?php foreach ($daftarKategori as $kat): ?>
+                                    <?php /* Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. */ ?>
                                     <option value="<?= $kat['id_kategori'] ?>" <?= ($id_kategori == $kat['id_kategori']) ? 'selected' : '' ?>>
                                         <?= htmlspecialchars($kat['nama_kategori']) ?>
                                     </option>
+                                <?php /* Akhir perulangan foreach. */ ?>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-12 col-md-2">
+                            <!-- Dropdown 'id_penulis': nilai opsi yang dipilih dikirim sebagai kunci 'id_penulis'. -->
                             <select name="id_penulis" class="form-select">
                                 <option value="">Semua Penulis</option>
+                                <!-- PERULANGAN: blok di bawah (sampai endforeach) diulang untuk setiap elemen $daftarPenulis; elemen aktif ada di $pen. -->
                                 <?php foreach ($daftarPenulis as $pen): ?>
                                     <option value="<?= $pen['id_penulis'] ?>" <?= ($id_penulis == $pen['id_penulis']) ? 'selected' : '' ?>>
                                         <?= htmlspecialchars($pen['nama_penulis']) ?>
                                     </option>
+                                <?php /* Akhir perulangan foreach. */ ?>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-12 col-md-2">
+                            <!-- Dropdown 'id_penerbit': nilai opsi yang dipilih dikirim sebagai kunci 'id_penerbit'. -->
                             <select name="id_penerbit" class="form-select">
                                 <option value="">Semua Penerbit</option>
+                                <!-- PERULANGAN: blok di bawah (sampai endforeach) diulang untuk setiap elemen $daftarPenerbit; elemen aktif ada di $penb. -->
                                 <?php foreach ($daftarPenerbit as $penb): ?>
                                     <option value="<?= $penb['id_penerbit'] ?>" <?= ($id_penerbit == $penb['id_penerbit']) ? 'selected' : '' ?>>
                                         <?= htmlspecialchars($penb['nama_penerbit']) ?>
                                     </option>
+                                <?php /* Akhir perulangan foreach. */ ?>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-12 col-md-2 d-flex gap-2">
+                            <!-- Tombol SUBMIT: mengirim form. -->
                             <button type="submit" class="btn btn-primary w-100 fw-semibold">Filter</button>
                             <!-- CLEAN URL: Reset Filter -->
                             <a href="/Aplikasi_Peminjaman_Buku/siswa/daftarBuku" class="btn btn-secondary text-white"><i class="fa-solid fa-rotate-right"></i></a>
@@ -337,6 +383,7 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                 <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_peminjaman.php?aksi=tambah" method="POST" id="formPeminjaman" style="padding-bottom: 100px;">
 
                     <div class="row g-4">
+                        <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($bukuPaginated) -->
                         <?php if (!empty($bukuPaginated)): ?>
                             <?php foreach ($bukuPaginated as $i => $buku): 
                                 $index = $offset + $i; ?>
@@ -345,10 +392,14 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
 
                                         <!-- Container Cover Buku -->
                                         <div class="cover-container">
+                                            <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($buku['cover']) -->
                                             <?php if (!empty($buku['cover'])): ?>
+                                                <!-- Gambar COVER buku: nama file dari database disambung ke folder ASSETS/COVER. -->
                                                 <img src="/Aplikasi_Peminjaman_Buku/ASSETS/COVER/<?= htmlspecialchars($buku['cover']) ?>" class="cover-buku" alt="Cover Buku">
+                                            <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
                                             <?php else: ?>
                                                 <i class="fa-solid fa-book-open fa-3x text-secondary opacity-50"></i>
+                                            <!-- Akhir kondisi if. -->
                                             <?php endif; ?>
                                         </div>
 
@@ -366,6 +417,7 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
 
                                                 <!-- Checkbox Pilihan -->
                                                 <div class="form-check m-0">
+                                                    <!-- Kolom input 'id_buku[{...}]' (type=checkbox) -> dibaca controller sebagai $_POST['id_buku[{...}]']. -->
                                                     <input class="form-check-input buku-checkbox" type="checkbox"
                                                         name="id_buku[<?= $index ?>]"
                                                         value="<?= $buku['id_buku'] ?>"
@@ -378,6 +430,7 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                                             <div class="mt-3" id="container_jumlah_<?= $index ?>" style="display: none;">
                                                 <div class="input-group input-group-sm">
                                                     <span class="input-group-text bg-light fw-semibold">Jumlah</span>
+                                                    <!-- Kolom input 'jumlah[{...}]' (type=number) -> dibaca controller sebagai $_POST['jumlah[{...}]']. -->
                                                     <input type="number" name="jumlah[<?= $index ?>]" id="input_jumlah_<?= $index ?>"
                                                         class="form-control text-center fw-bold" value="1" min="1" max="<?= $buku['stok'] ?>" disabled>
                                                 </div>
@@ -386,13 +439,16 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                                         </div>
                                     </div>
                                 </div>
+                            <!-- Akhir perulangan foreach. -->
                             <?php endforeach; ?>
+                        <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
                         <?php else: ?>
                             <div class="col-12 text-center py-5">
                                 <i class="fa-solid fa-box-open text-muted fa-4x mb-3 opacity-50"></i>
                                 <h5 class="text-muted fw-bold">Tidak ada buku yang ditemukan.</h5>
                                 <p class="text-muted">Coba gunakan kata kunci atau filter lain.</p>
                             </div>
+                        <!-- Akhir kondisi if. -->
                         <?php endif; ?>
                     </div>
 
@@ -401,15 +457,19 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                         <div class="pagination-container">
                             <p class="pagination-info mb-0">Menampilkan <strong><?= count($bukuPaginated) ?></strong> dari <strong><?= $total_data ?></strong> total buku tersedia</p>
                             
+                            <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika $total_pages > 1 -->
                             <?php if ($total_pages > 1): ?>
                                 <ul class="pagination">
+                                    <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika $page > 1 -->
                                     <?php if ($page > 1): ?>
                                         <li>
                                             <!-- Bawa parameter pencarian ke halaman paginasi -->
                                             <a href="?page=<?= $page - 1 ?>&keyword=<?= urlencode($keyword) ?>&id_kategori=<?= $id_kategori ?>&id_penulis=<?= $id_penulis ?>&id_penerbit=<?= $id_penerbit ?>">« Prev</a>
                                         </li>
+                                    <!-- Akhir kondisi if. -->
                                     <?php endif; ?>
 
+                                    <!-- PERULANGAN for ($p = 1; $p <= $total_pages; $p++): blok di bawah diulang sesuai kondisi ini (misalnya membuat tombol nomor halaman). -->
                                     <?php for ($p = 1; $p <= $total_pages; $p++): ?>
                                         <li>
                                             <a href="?page=<?= $p ?>&keyword=<?= urlencode($keyword) ?>&id_kategori=<?= $id_kategori ?>&id_penulis=<?= $id_penulis ?>&id_penerbit=<?= $id_penerbit ?>" class="<?= ($p === $page) ? 'active' : '' ?>">
@@ -418,14 +478,18 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                                         </li>
                                     <?php endfor; ?>
 
+                                    <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika $page < $total_pages -->
                                     <?php if ($page < $total_pages): ?>
                                         <li>
                                             <a href="?page=<?= $page + 1 ?>&keyword=<?= urlencode($keyword) ?>&id_kategori=<?= $id_kategori ?>&id_penulis=<?= $id_penulis ?>&id_penerbit=<?= $id_penerbit ?>">Next »</a>
                                         </li>
+                                    <!-- Akhir kondisi if. -->
                                     <?php endif; ?>
                                 </ul>
+                            <!-- Akhir kondisi if. -->
                             <?php endif; ?>
                         </div>
+                    <!-- Akhir kondisi if. -->
                     <?php endif; ?>
 
                     <!-- Sticky Bottom Bar -->
@@ -437,6 +501,7 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                                 </h5>
                                 <small class="text-muted">Pastikan buku yang dipilih sudah sesuai sebelum mengajukan.</small>
                             </div>
+                            <!-- Tombol SUBMIT: mengirim form. -->
                             <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-bold" onclick="return confirm('Ajukan peminjaman sekarang?')">
                                 Ajukan Peminjaman <i class="fa-solid fa-paper-plane ms-2"></i>
                             </button>
@@ -451,28 +516,39 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // toggleJumlah(): dipanggil saat checkbox buku dicentang/dilepas. Menampilkan/menyembunyikan kolom jumlah buku itu dan mengaktifkan/menonaktifkan inputnya (input disabled tidak ikut terkirim ke server), lalu memperbarui bar total.
         function toggleJumlah(checkbox, index) {
+            // Ambil elemen HTML dan simpan di variabel container agar bisa dibaca/diubah lewat JavaScript.
             const container = document.getElementById('container_jumlah_' + index);
+            // Ambil elemen HTML dan simpan di variabel inputJumlah agar bisa dibaca/diubah lewat JavaScript.
             const inputJumlah = document.getElementById('input_jumlah_' + index);
 
+            // Dicentang: tampilkan kolom jumlah dan aktifkan input.
             if (checkbox.checked) {
                 container.style.display = 'block';
                 inputJumlah.disabled = false;
             } else {
                 container.style.display = 'none';
                 inputJumlah.disabled = true;
+                // Dibatalkan: jumlah dikembalikan ke 1.
                 inputJumlah.value = 1;
             }
 
+            // Perbarui bar total di bawah layar.
             updateTotalBar();
         }
 
+        // updateTotalBar(): menghitung buku yang tercentang, menampilkan angkanya, dan memunculkan bar bawah hanya jika ada buku terpilih.
         function updateTotalBar() {
+            // Ambil SEMUA checkbox buku yang sedang tercentang (selector :checked).
             const checkboxes = document.querySelectorAll('.buku-checkbox:checked');
+            // Ambil elemen HTML dan simpan di variabel bottomBar agar bisa dibaca/diubah lewat JavaScript.
             const bottomBar = document.getElementById('bottomBar');
+            // Ambil elemen HTML dan simpan di variabel totalText agar bisa dibaca/diubah lewat JavaScript.
             const totalText = document.getElementById('totalDipilih');
 
             totalText.innerText = checkboxes.length;
+            // Operator ternary: jika ada yang dipilih tampilkan bar (block), jika tidak sembunyikan (none).
             bottomBar.style.display = checkboxes.length > 0 ? 'block' : 'none';
         }
     </script>

@@ -1,11 +1,21 @@
 <?php
 
+// =====================================================================
+// FILE   : MODEL/m_denda.php
+// FUNGSI : MODEL tabel `denda` (denda keterlambatan / kerusakan / kehilangan).
+// CATATAN: class ini tidak dipakai di bagian lain proyek (hanya oleh c_denda.php
+//          yang juga belum tersambung). Penyimpanan denda saat pengembalian
+//          dilakukan langsung oleh M_Peminjaman::kembalikanBuku().
+// =====================================================================
 require_once 'm_koneksi.php';
 
+// Class Denda; properti public di bawah = kolom tabel denda.
 class Denda
 {
+    // Koneksi database.
     private $koneksi;
 
+    // Penampung data satu denda.
     public $id_denda;
     public $id_detail;
     public $jenis_denda;
@@ -15,6 +25,7 @@ class Denda
     public $status_pembayaran;
     public $keterangan;
 
+    // Constructor: buka koneksi.
     public function __construct()
     {
         $db = new Koneksi();
@@ -22,6 +33,7 @@ class Denda
     }
 
     // MENAMPILKAN SEMUA DENDA
+    // getAll(): semua denda + judul buku + nama siswa (INNER JOIN 4 tabel: denda -> detail_peminjaman -> buku, peminjaman -> users).
     public function getAll()
     {
         $query = "
@@ -66,6 +78,7 @@ class Denda
     }
 
     // MENCARI DENDA BERDASARKAN ID
+    // getById(): satu denda.
     public function getById($id_denda)
     {
         $stmt = $this->koneksi->prepare("
@@ -85,6 +98,7 @@ class Denda
     }
 
     // MENCARI DENDA BERDASARKAN DETAIL
+    // getByDetail(): semua denda milik satu baris detail peminjaman.
     public function getByDetail($id_detail)
     {
         $stmt = $this->koneksi->prepare("
@@ -112,6 +126,7 @@ class Denda
     }
 
     // TAMBAH DENDA
+    // insert(): tambah denda dari properti objek.
     public function insert()
     {
         $stmt = $this->koneksi->prepare("
@@ -129,6 +144,7 @@ class Denda
         ");
 
         $stmt->bind_param(
+            // Tipe: i id_detail, s jenis, i hari, i jumlah, s tanggal, s status, s keterangan.
             "isiisss",
             $this->id_detail,
             $this->jenis_denda,
@@ -143,6 +159,7 @@ class Denda
     }
 
     // UPDATE DENDA
+    // update(): ubah data denda berdasarkan id_denda.
     public function update()
     {
         $stmt = $this->koneksi->prepare("
@@ -157,6 +174,7 @@ class Denda
         ");
 
         $stmt->bind_param(
+            // Enam kolom + id_denda (i) untuk WHERE.
             "siisssi",
             $this->jenis_denda,
             $this->jumlah_hari_terlambat,
@@ -171,6 +189,7 @@ class Denda
     }
 
     // UPDATE STATUS PEMBAYARAN
+    // updateStatusPembayaran(): hanya mengubah status pembayaran (mis. jadi 'Sudah Dibayar').
     public function updateStatusPembayaran($id_denda, $status_pembayaran)
     {
         $stmt = $this->koneksi->prepare("
@@ -189,6 +208,7 @@ class Denda
     }
 
     // HAPUS DENDA
+    // delete(): hapus satu denda.
     public function delete($id_denda)
     {
         $stmt = $this->koneksi->prepare("

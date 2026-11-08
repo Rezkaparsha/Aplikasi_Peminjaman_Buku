@@ -1,14 +1,25 @@
 <?php
+// =====================================================================
+// FILE   : VIEW/TEMPLATE/SideBarAdmin.php
+// FUNGSI : TEMPLATE menu samping (sidebar) khusus ADMIN.
+// Bukan halaman sendiri: file ini di-include oleh setiap view admin lewat perintah include.
+// Berisi: pemuat library (Tailwind, SweetAlert2, Font Awesome), logika menu aktif, tampilan menu, dan tombol logout.
+// =====================================================================
 // Panggil Model yang dibutuhkan
 require_once __DIR__ . "/../../MODEL/m_buku.php";
+// Memuat file model m_users.php (berisi class untuk query database).
 require_once __DIR__ . "/../../MODEL/m_users.php";
+// Memuat file model m_peminjaman.php (berisi class untuk query database).
 require_once __DIR__ . "/../../MODEL/m_peminjaman.php";
 
 $namaAdmin = $_SESSION['nama_lengkap'] ?? $_SESSION['nama'] ?? 'Administrator';
+// Alamat halaman yang sedang dibuka; dipakai untuk menandai menu yang aktif.
 $currentUri = $_SERVER['REQUEST_URI'];
 
 // FUNGSI CEK MENU AKTIF (BEBAS ERROR VERT & LEBIH AKURAT)
+// Definisikan fungsi hanya jika belum ada (template ini bisa di-include lebih dari sekali; mendefinisikan fungsi dua kali menimbulkan error).
 if (!function_exists('isMenuAktif')) {
+    // isMenuAktif($uri, $keywords): true bila alamat mengandung salah satu kata kunci (strpos !== false). Hasilnya dipakai untuk memberi class 'active' pada menu.
     function isMenuAktif($uri, $keywords) {
         foreach ($keywords as $key) {
             if (strpos($uri, $key) !== false) {
@@ -21,6 +32,7 @@ if (!function_exists('isMenuAktif')) {
 
 // LOGIKA MENU AKTIF YANG DIPERBAIKI
 // Menggunakan nama rute/file spesifik agar tidak bentrok dengan nama folder "Aplikasi_Peminjaman_Buku"
+// Penanda menu aktif: tiap variabel bernilai true jika alamat saat ini memuat nama halaman terkait.
 $aktifDashboard  = isMenuAktif($currentUri, ['dashboardAdmin']);
 $aktifPeminjaman = isMenuAktif($currentUri, ['daftarPeminjaman', 'detailPeminjaman']);
 $aktifBuku       = isMenuAktif($currentUri, ['daftarBuku', 'tambahBuku', 'editBuku']);
@@ -33,9 +45,12 @@ $aktifHistori    = isMenuAktif($currentUri, ['historiTransaksi']);
 
 <!-- ASSETS PENDUKUNG -->
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- Memuat SweetAlert2 (dialog/popup konfirmasi yang lebih bagus dari alert biasa). -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Memuat Font Awesome (kumpulan ikon, dipakai lewat class fa-...). -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+<!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
 <style>
     /* CSS KUNCI MUTLAK (ANTI-BERANTAKAN) */
     .sidebar-permanen {
@@ -144,6 +159,7 @@ $aktifHistori    = isMenuAktif($currentUri, ['historiTransaksi']);
     }
 </style>
 
+<!-- SIDEBAR (menu samping). -->
 <aside class="sidebar-permanen">
     
     <!-- HEADER -->
@@ -159,34 +175,42 @@ $aktifHistori    = isMenuAktif($currentUri, ['historiTransaksi']);
 
     <!-- MENU LIST -->
     <div class="sidebar-menu-list">
+        <!-- Tautan navigasi ke halaman /admin/dashboardAdmin. -->
         <a href="/Aplikasi_Peminjaman_Buku/admin/dashboardAdmin" class="menu-item <?= $aktifDashboard ? 'active' : '' ?>">
             <i class="fas fa-chart-pie menu-icon"></i> Dashboard
         </a>
         
+        <!-- Tautan navigasi ke halaman /admin/daftarPeminjaman. -->
         <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPeminjaman" class="menu-item <?= $aktifPeminjaman ? 'active' : '' ?>">
             <i class="fas fa-exchange-alt menu-icon"></i> Kelola Peminjaman
         </a>
         
+        <!-- Tautan navigasi ke halaman /admin/daftarBuku. -->
         <a href="/Aplikasi_Peminjaman_Buku/admin/daftarBuku" class="menu-item <?= $aktifBuku ? 'active' : '' ?>">
             <i class="fas fa-book menu-icon"></i> Kelola Buku
         </a>
         
+        <!-- Tautan navigasi ke halaman /admin/daftarKategori. -->
         <a href="/Aplikasi_Peminjaman_Buku/admin/daftarKategori" class="menu-item <?= $aktifKategori ? 'active' : '' ?>">
             <i class="fas fa-tags menu-icon"></i> Kategori Buku
         </a>
         
+        <!-- Tautan navigasi ke halaman /admin/daftarPenerbit. -->
         <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenerbit" class="menu-item <?= $aktifPenerbit ? 'active' : '' ?>">
             <i class="fas fa-building menu-icon"></i> Penerbit
         </a>
         
+        <!-- Tautan navigasi ke halaman /admin/daftarPenulis. -->
         <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenulis" class="menu-item <?= $aktifPenulis ? 'active' : '' ?>">
             <i class="fas fa-pen-nib menu-icon"></i> Penulis
         </a>
         
+        <!-- Tautan navigasi ke halaman /admin/daftarUser. -->
         <a href="/Aplikasi_Peminjaman_Buku/admin/daftarUser" class="menu-item <?= $aktifUser ? 'active' : '' ?>">
             <i class="fas fa-users menu-icon"></i> Kelola User
         </a>
         
+        <!-- Tautan navigasi ke halaman /admin/historiTransaksi. -->
         <a href="/Aplikasi_Peminjaman_Buku/admin/historiTransaksi" class="menu-item <?= $aktifHistori ? 'active' : '' ?>">
             <i class="fas fa-history menu-icon"></i> Histori Transaksi
         </a>
@@ -196,9 +220,11 @@ $aktifHistori    = isMenuAktif($currentUri, ['historiTransaksi']);
     <div class="sidebar-footer">
         <div class="profil-box">
             <div style="background-color: #38bdf8; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; flex-shrink: 0;">
+                <!-- Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. -->
                 <?= strtoupper(substr($namaAdmin, 0, 1)) ?>
             </div>
             <div style="overflow: hidden;">
+                <!-- htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). -->
                 <div style="color: white; font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?= htmlspecialchars($namaAdmin) ?></div>
                 <div style="color: #38bdf8; font-size: 11px;">Administrator</div>
             </div>
@@ -212,10 +238,12 @@ $aktifHistori    = isMenuAktif($currentUri, ['historiTransaksi']);
 
 <!-- SCRIPT LOGOUT SWEETALERT -->
 <script>
+    // konfirmasiLogout(): mencegah link langsung jalan (preventDefault), menampilkan dialog konfirmasi; jika Ya -> pindah ke /logout (c_login aksi logout). Jika SweetAlert gagal dimuat, dipakai confirm() bawaan browser.
     function konfirmasiLogout(e) {
         if (e) e.preventDefault();
         
         if (typeof Swal !== 'undefined') {
+            // Tampilkan dialog SweetAlert2 (popup).
             Swal.fire({
                 title: 'Akhiri Sesi?',
                 text: "Anda akan keluar dari Panel Admin Perpustakaan.",
@@ -228,12 +256,15 @@ $aktifHistori    = isMenuAktif($currentUri, ['historiTransaksi']);
                 background: '#1e293b',
                 color: '#f8fafc'
             }).then((result) => {
+                // Jika pengguna menekan tombol konfirmasi (Ya)...
                 if (result.isConfirmed) {
+                    // Pindah halaman ke alamat ini (di sini memanggil controller).
                     window.location.href = "/Aplikasi_Peminjaman_Buku/logout";
                 }
             });
         } else {
             if (confirm("Apakah Anda yakin ingin logout?")) {
+                // Pindah halaman ke alamat ini (di sini memanggil controller).
                 window.location.href = "/Aplikasi_Peminjaman_Buku/logout";
             }
         }

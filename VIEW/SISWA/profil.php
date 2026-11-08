@@ -1,11 +1,20 @@
 <?php
+// =====================================================================
+// FILE   : VIEW/SISWA/profil.php  (URL: /siswa/profil)
+// FUNGSI : PROFIL siswa + form ganti password.
+// ALUR   : form ganti password (POST) -> CONTROLLER/c_user.php?aksi=updatePassword (password lama diverifikasi dulu).
+// =====================================================================
+// Mulai session hanya jika belum aktif (mencegah error session already started).
 if (session_status() === PHP_SESSION_NONE) {
+    // Mengaktifkan session (penyimpanan data login sementara di server).
     session_start();
 }
 
 // Proteksi Akses Siswa
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'siswa') {
+    // Jika yang login ternyata berrole 'admin' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        // Alamat tujuan: halaman admin terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_admin'] ?? '/Aplikasi_Peminjaman_Buku/admin/dashboardAdmin';
         header("Location: " . $kembali);
         exit;
@@ -17,17 +26,24 @@ if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'siswa') {
 // Simpan URL lokasi controller aktif saat ini
 $_SESSION['last_page_siswa'] = $_SERVER['REQUEST_URI'];
 
+// Memuat file model m_koneksi.php (berisi class untuk query database).
 require_once __DIR__ . "/../../MODEL/m_koneksi.php";
 
+// Buat objek dari class Koneksi; variabel $db dipakai untuk memanggil fungsi-fungsinya.
 $db = new Koneksi();
+// Ambil objek koneksi dari class Koneksi untuk menjalankan query.
 $koneksi = $db->getKoneksi();
 
+// id user yang sedang login (dari session), dipaksa jadi angka (int).
 $id_user = (int)$_SESSION['id_user'];
 
 // Ambil data user terbaru dari database (Termasuk kolom kelas)
 $stmt = $koneksi->prepare("SELECT id_user, nis_nip, username, nama_lengkap, kelas, role FROM users WHERE id_user = ?");
+// Isi tanda tanya (?) pada query dengan nilai sebenarnya (i = integer, s = string).
 $stmt->bind_param("i", $id_user);
+// Jalankan query.
 $stmt->execute();
+// Ambil hasil query; fetch_assoc() mengambil satu baris sebagai array berkunci nama kolom.
 $userData = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 ?>
@@ -35,14 +51,19 @@ $stmt->close();
 <!DOCTYPE html>
 <html lang="id">
 
+<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
+    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
+    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Judul yang tampil di tab browser. -->
     <title>Profil Saya - Aplikasi Perpustakaan</title>
 
     <!-- FontAwesome Icon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
     <style>
         /* Reset & Layout Kunci Layar */
         * {
@@ -326,6 +347,7 @@ $stmt->close();
     </style>
 </head>
 
+<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <div class="app-wrapper">
@@ -340,8 +362,10 @@ $stmt->close();
             <div class="topbar">
                 <h2>Profil Pengguna</h2>
                 <div class="topbar-profile">
+                    <!-- htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). -->
                     <span style="font-size: 14px; font-weight: 600; color: #475569;"><?= htmlspecialchars($userData['nama_lengkap'] ?? 'Siswa') ?></span>
                     <div style="width: 32px; height: 32px; background: #2563eb; color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 12px;">
+                        <!-- Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. -->
                         <?= strtoupper(substr($userData['nama_lengkap'] ?? 'S', 0, 1)) ?>
                     </div>
                 </div>
@@ -361,14 +385,17 @@ $stmt->close();
                         <div><?= htmlspecialchars($_SESSION['error']) ?></div>
                     </div>
                     <?php unset($_SESSION['error']); ?>
+                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
 
+                <!-- PESAN SUKSES (flash message): tampil bila controller mengisi $_SESSION['success']; langsung dihapus setelah tampil. -->
                 <?php if (isset($_SESSION['success'])): ?>
                     <div class="alert alert-success">
                         <i class="fa-solid fa-circle-check"></i>
                         <div><?= htmlspecialchars($_SESSION['success']) ?></div>
                     </div>
                     <?php unset($_SESSION['success']); ?>
+                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
 
                 <div class="profile-grid">
@@ -421,6 +448,7 @@ $stmt->close();
                                 <label for="password_lama">Password Saat Ini</label>
                                 <div class="input-box">
                                     <i class="fa-solid fa-lock"></i>
+                                    <!-- Kolom input 'password_lama' (type=password) -> dibaca controller sebagai $_POST['password_lama']. -->
                                     <input type="password" id="password_lama" name="password_lama" class="form-control" placeholder="Masukkan password lama" required>
                                 </div>
                             </div>
@@ -429,6 +457,7 @@ $stmt->close();
                                 <label for="password_baru">Password Baru</label>
                                 <div class="input-box">
                                     <i class="fa-solid fa-key"></i>
+                                    <!-- Kolom input 'password_baru' (type=password) -> dibaca controller sebagai $_POST['password_baru']. -->
                                     <input type="password" id="password_baru" name="password_baru" class="form-control" placeholder="Masukkan password baru" required>
                                 </div>
                             </div>
@@ -437,10 +466,12 @@ $stmt->close();
                                 <label for="konfirmasi_password_baru">Konfirmasi Password Baru</label>
                                 <div class="input-box">
                                     <i class="fa-solid fa-check-double"></i>
+                                    <!-- Kolom input 'konfirmasi_password_baru' (type=password) -> dibaca controller sebagai $_POST['konfirmasi_password_baru']. -->
                                     <input type="password" id="konfirmasi_password_baru" name="konfirmasi_password_baru" class="form-control" placeholder="Ulangi password baru" required>
                                 </div>
                             </div>
 
+                            <!-- Tombol SUBMIT: mengirim form. -->
                             <button type="submit" class="btn-submit">
                                 <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan Password
                             </button>

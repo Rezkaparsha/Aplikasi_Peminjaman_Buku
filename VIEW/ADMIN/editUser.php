@@ -1,11 +1,20 @@
 <?php
+// =====================================================================
+// FILE   : VIEW/ADMIN/editUser.php  (URL: /admin/editUser?id_user=..)
+// FUNGSI : FORM UBAH USER (+ ganti password user).
+// ALUR   : dua form POST: ?aksi=update (data user) dan ?aksi=updatePassword (ganti password user) ke CONTROLLER/c_user.php.
+// =====================================================================
+// Mulai session hanya jika belum aktif (mencegah error session already started).
 if (session_status() === PHP_SESSION_NONE) {
+    // Mengaktifkan session (penyimpanan data login sementara di server).
     session_start();
 }
 
 // 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
+    // Jika yang login ternyata berrole 'siswa' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        // Alamat tujuan: halaman siswa terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
         header("Location: " . $kembali);
         exit;
@@ -14,6 +23,7 @@ if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
+// Catat alamat halaman ini sebagai halaman admin terakhir (dipakai untuk mengembalikan pengguna yang nyasar).
 $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
 // 2. Ambil ID User dari URL
@@ -27,8 +37,10 @@ if ($id_user <= 0) {
 
 // 3. Panggil Model Users
 require_once __DIR__ . "/../../MODEL/m_users.php";
+// Buat objek dari class Users; variabel $userModel dipakai untuk memanggil fungsi-fungsinya.
 $userModel = new Users();
 
+// Panggil method getById() milik objek $userModel; hasilnya disimpan di $dataUser.
 $dataUser = $userModel->getById($id_user);
 
 if (!$dataUser) {
@@ -41,10 +53,15 @@ if (!$dataUser) {
 <!DOCTYPE html>
 <html lang="id">
 
+<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
+    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
+    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Judul yang tampil di tab browser. -->
     <title>Edit User - Perpustakaan Online</title>
+    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
     <style>
         * {
             box-sizing: border-box;
@@ -200,6 +217,7 @@ if (!$dataUser) {
     </style>
 </head>
 
+<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <!-- Sidebar Admin -->
@@ -225,37 +243,47 @@ if (!$dataUser) {
                     <!-- ALERT NOTIFIKASI ERROR -->
                     <?php if (isset($_SESSION['error'])): ?>
                         <div class="alert-danger">
+                            <!-- htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). -->
                             <span>⚠️ <?= htmlspecialchars($_SESSION['error']) ?></span>
                         </div>
                         <?php unset($_SESSION['error']); ?>
+                    <!-- Akhir kondisi if. -->
                     <?php endif; ?>
 
+                    <!-- FORM: saat disubmit, data dikirim dengan method POST ke /Aplikasi_Peminjaman_Buku/CONTROLLER/c_user.php?aksi=update. Atribut name pada setiap input menjadi kunci $_POST['...'] di controller. -->
                     <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_user.php?aksi=update" method="POST">
+                        <!-- Input TERSEMBUNYI 'id_user': membawa data ke controller tanpa ditampilkan ($_POST['id_user']). -->
                         <input type="hidden" name="id_user" value="<?= htmlspecialchars($dataUser['id_user']) ?>">
 
                         <div class="form-group">
                             <label for="nis_nip">NIS / NIP</label>
+                            <!-- Kolom input 'nis_nip' (type=text) -> dibaca controller sebagai $_POST['nis_nip']. -->
                             <input type="text" id="nis_nip" name="nis_nip" class="form-control" value="<?= htmlspecialchars($dataUser['nis_nip']) ?>" placeholder="Masukkan NIS/NIP">
                         </div>
 
                         <div class="form-group">
                             <label for="nama_lengkap">Nama Lengkap</label>
+                            <!-- Kolom input 'nama_lengkap' (type=text) -> dibaca controller sebagai $_POST['nama_lengkap']. -->
                             <input type="text" id="nama_lengkap" name="nama_lengkap" class="form-control" value="<?= htmlspecialchars($dataUser['nama_lengkap']) ?>" required>
                         </div>
 
                         <div class="form-group">
                             <label for="kelas">Kelas</label>
+                            <!-- Kolom input 'kelas' (type=text) -> dibaca controller sebagai $_POST['kelas']. -->
                             <input type="text" id="kelas" name="kelas" class="form-control" value="<?= htmlspecialchars($dataUser['kelas'] ?? '') ?>">
                         </div>
                         
                         <div class="form-group">
                             <label for="username">Username</label>
+                            <!-- Kolom input 'username' (type=text) -> dibaca controller sebagai $_POST['username']. -->
                             <input type="text" id="username" name="username" class="form-control" value="<?= htmlspecialchars($dataUser['username']) ?>" required>
                         </div>
 
                         <div class="form-group">
                             <label for="role">Role / Akses</label>
+                            <!-- Dropdown 'role': nilai opsi yang dipilih dikirim sebagai kunci 'role'. -->
                             <select id="role" name="role" class="form-control" required>
+                                <!-- Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. -->
                                 <option value="admin" <?= ($dataUser['role'] === 'admin') ? 'selected' : '' ?>>Admin</option>
                                 <option value="siswa" <?= ($dataUser['role'] === 'siswa') ? 'selected' : '' ?>>Siswa</option>
                                 <option value="guru" <?= ($dataUser['role'] === 'guru') ? 'selected' : '' ?>>Guru</option>
@@ -263,7 +291,9 @@ if (!$dataUser) {
                         </div>
 
                         <div class="action-group">
+                            <!-- Tombol SUBMIT: mengirim form. -->
                             <button type="submit" class="btn btn-submit">Simpan Perubahan</button>
+                            <!-- Tautan navigasi ke halaman /admin/daftarUser. -->
                             <a href="/Aplikasi_Peminjaman_Buku/admin/daftarUser" class="btn btn-cancel">Batal</a>
                         </div>
                     </form>
@@ -275,15 +305,19 @@ if (!$dataUser) {
                         <h3>Ganti Password</h3>
                     </div>
 
+                    <!-- FORM: saat disubmit, data dikirim dengan method POST ke /Aplikasi_Peminjaman_Buku/CONTROLLER/c_user.php?aksi=updatePassword. Atribut name pada setiap input menjadi kunci $_POST['...'] di controller. -->
                     <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_user.php?aksi=updatePassword" method="POST">
+                        <!-- Input TERSEMBUNYI 'id_user': membawa data ke controller tanpa ditampilkan ($_POST['id_user']). -->
                         <input type="hidden" name="id_user" value="<?= htmlspecialchars($dataUser['id_user']) ?>">
 
                         <div class="form-group">
                             <label for="password">Password Baru</label>
+                            <!-- Kolom input 'password' (type=password) -> dibaca controller sebagai $_POST['password']. -->
                             <input type="password" id="password" name="password" class="form-control" placeholder="Ketik password baru" required>
                         </div>
 
                         <div style="margin-top: 25px;">
+                            <!-- Tombol SUBMIT: mengirim form. -->
                             <button type="submit" class="btn btn-warning">Update Password</button>
                         </div>
                     </form>

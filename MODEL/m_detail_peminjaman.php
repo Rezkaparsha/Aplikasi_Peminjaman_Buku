@@ -1,11 +1,21 @@
 <?php
 
+// =====================================================================
+// FILE   : MODEL/m_detail_peminjaman.php
+// FUNGSI : MODEL tabel `detail_peminjaman` (baris buku dalam satu peminjaman).
+// CATATAN: class ini tidak dipakai di bagian lain proyek. Operasi detail yang
+//          berjalan di aplikasi dilakukan langsung di M_Peminjaman (tambah,
+//          setujui, kembalikan). Tetap berguna dipelajari sebagai model tabel detail.
+// =====================================================================
 require_once 'm_koneksi.php';
 
+// Class DetailPeminjaman.
 class DetailPeminjaman
 {
+    // Koneksi database.
     private $koneksi;
 
+    // Penampung data satu baris detail.
     public $id_detail;
     public $id_peminjaman;
     public $id_buku;
@@ -13,6 +23,7 @@ class DetailPeminjaman
     public $tanggal_dikembalikan;
     public $status;
 
+    // Constructor: buka koneksi.
     public function __construct()
     {
         $db = new Koneksi();
@@ -20,6 +31,7 @@ class DetailPeminjaman
     }
 
     // MENAMPILKAN SEMUA DETAIL PEMINJAMAN
+    // getAll(): semua detail + judul buku.
     public function getAll()
     {
         $query = "
@@ -48,6 +60,7 @@ class DetailPeminjaman
     }
 
     // MENCARI DETAIL BERDASARKAN ID
+    // getById(): satu detail + judul buku.
     public function getById($id_detail)
     {
         $stmt = $this->koneksi->prepare("
@@ -67,6 +80,7 @@ class DetailPeminjaman
     }
 
     // MENCARI DETAIL BERDASARKAN PEMINJAMAN
+    // getByPeminjaman(): semua buku dalam satu peminjaman, termasuk harga buku.
     public function getByPeminjaman($id_peminjaman)
     {
         $stmt = $this->koneksi->prepare("
@@ -100,6 +114,7 @@ class DetailPeminjaman
     }
 
     // TAMBAH DETAIL PEMINJAMAN
+    // insert(): tambah baris detail.
     public function insert()
     {
         $stmt = $this->koneksi->prepare("
@@ -115,6 +130,7 @@ class DetailPeminjaman
         ");
 
         $stmt->bind_param(
+            // i id_peminjaman, i id_buku, s tgl_pengembalian, s tgl_dikembalikan, s status.
             "iisss",
             $this->id_peminjaman,
             $this->id_buku,
@@ -127,6 +143,7 @@ class DetailPeminjaman
     }
 
     // UPDATE DETAIL PEMINJAMAN
+    // update(): ubah detail berdasarkan id_detail.
     public function update()
     {
         $stmt = $this->koneksi->prepare("
@@ -139,6 +156,7 @@ class DetailPeminjaman
         ");
 
         $stmt->bind_param(
+            // Empat kolom + id_detail (i) untuk WHERE.
             "isssi",
             $this->id_buku,
             $this->tanggal_pengembalian,
@@ -151,6 +169,7 @@ class DetailPeminjaman
     }
 
     // PROSES PENGEMBALIAN BUKU
+    // kembalikanBuku(): menandai satu detail 'Dikembalikan' + isi tanggal dikembalikan (versi sederhana; versi lengkap dengan stok & denda ada di M_Peminjaman).
     public function kembalikanBuku($id_detail, $tanggal_dikembalikan)
     {
         $status = 'Dikembalikan';
@@ -173,6 +192,7 @@ class DetailPeminjaman
     }
 
     // MENGHAPUS DETAIL
+    // delete(): hapus satu detail.
     public function delete($id_detail)
     {
         $stmt = $this->koneksi->prepare("
@@ -186,6 +206,7 @@ class DetailPeminjaman
     }
 
     // CEK APAKAH BUKU MASIH DIPINJAM
+    // cekBukuSedangDipinjam(): menghitung berapa detail berstatus 'Dipinjam' untuk satu buku (>0 = sedang dipinjam).
     public function cekBukuSedangDipinjam($id_buku)
     {
         $stmt = $this->koneksi->prepare("

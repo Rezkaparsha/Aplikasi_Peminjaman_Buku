@@ -1,11 +1,20 @@
 <?php
+// =====================================================================
+// FILE   : VIEW/SISWA/detailPeminjaman.php  (URL: /siswa/detailPeminjaman?id_peminjaman=..)
+// FUNGSI : DETAIL satu peminjaman milik siswa (status, tanggal, daftar buku, alasan bila ditolak).
+// KEAMANAN: cekKepemilikanPeminjaman() memastikan siswa hanya melihat peminjamannya sendiri.
+// =====================================================================
+// Mulai session hanya jika belum aktif (mencegah error session already started).
 if (session_status() === PHP_SESSION_NONE) {
+    // Mengaktifkan session (penyimpanan data login sementara di server).
     session_start();
 }
 
 // Proteksi Akses Siswa Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'siswa') {
+    // Jika yang login ternyata berrole 'admin' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        // Alamat tujuan: halaman admin terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_admin'] ?? '/Aplikasi_Peminjaman_Buku/admin/dashboardAdmin';
         header("Location: " . $kembali);
         exit;
@@ -17,6 +26,7 @@ if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'siswa') {
 // Simpan URL lokasi controller aktif saat ini
 $_SESSION['last_page_siswa'] = $_SERVER['REQUEST_URI'];
 
+// Memuat file model m_peminjaman.php (berisi class untuk query database).
 require_once __DIR__ . "/../../MODEL/m_peminjaman.php";
 
 // Mengambil ID User dari sesi akun yang sedang login
@@ -29,6 +39,7 @@ if ($id_peminjaman <= 0) {
     exit;
 }
 
+// Buat objek dari class M_Peminjaman; variabel $modelPeminjaman dipakai untuk memanggil fungsi-fungsinya.
 $modelPeminjaman = new M_Peminjaman();
 
 // Cek apakah transaksi ini milik user yang sedang login
@@ -40,15 +51,20 @@ if (!$modelPeminjaman->cekKepemilikanPeminjaman($id_peminjaman, $id_user)) {
 
 // Ambil data header peminjaman dan rincian detail buku
 $headerPeminjaman = $modelPeminjaman->getPeminjamanById($id_peminjaman);
+// Panggil method getDetailPeminjaman() milik objek $modelPeminjaman; hasilnya disimpan di $detailBuku.
 $detailBuku = $modelPeminjaman->getDetailPeminjaman($id_peminjaman);
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
 
+<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
+    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
+    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Judul yang tampil di tab browser. -->
     <title>Detail Peminjaman #PMJ-<?= $id_peminjaman ?> - Perpustakaan</title>
 
     <!-- Bootstrap 5 CSS -->
@@ -56,6 +72,7 @@ $detailBuku = $modelPeminjaman->getDetailPeminjaman($id_peminjaman);
     <!-- FontAwesome Icon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
     <style>
         /* 1. Kunci ukuran Layar Utama agar tidak bisa di-scroll ke mana pun */
         html,
@@ -146,6 +163,7 @@ $detailBuku = $modelPeminjaman->getDetailPeminjaman($id_peminjaman);
     </style>
 </head>
 
+<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <div class="container py-5">
@@ -154,6 +172,7 @@ $detailBuku = $modelPeminjaman->getDetailPeminjaman($id_peminjaman);
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h3 class="fw-bold mb-1">
+                    <!-- htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). -->
                     <i class="fa-solid fa-file-invoice text-primary me-2"></i>Rincian Peminjaman #PMJ-<?= htmlspecialchars($id_peminjaman) ?>
                 </h3>
                 <p class="text-muted mb-0">Detail informasi buku dan status pengajuan Anda</p>
@@ -164,6 +183,7 @@ $detailBuku = $modelPeminjaman->getDetailPeminjaman($id_peminjaman);
             </a>
         </div>
 
+        <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika $headerPeminjaman -->
         <?php if ($headerPeminjaman): ?>
             <div class="row g-4">
                 <!-- Information Card (Kiri) -->
@@ -186,6 +206,7 @@ $detailBuku = $modelPeminjaman->getDetailPeminjaman($id_peminjaman);
                             <label class="text-muted small d-block">Tanggal Pengajuan / Pinjam</label>
                             <span class="fw-semibold">
                                 <i class="fa-regular fa-calendar-days text-muted me-1"></i>
+                                <!-- Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. -->
                                 <?= date('d F Y', strtotime($headerPeminjaman['tanggal_pinjam'])) ?>
                             </span>
                         </div>
@@ -210,6 +231,7 @@ $detailBuku = $modelPeminjaman->getDetailPeminjaman($id_peminjaman);
                                 <strong><i class="fa-solid fa-circle-exclamation me-1"></i> Pengajuan Ditolak!</strong><br>
                                 Alasan: <?= htmlspecialchars($headerPeminjaman['alasan_penolakan'] ?? 'Tidak ada alasan yang diberikan.') ?>
                             </div>
+                        <!-- Akhir kondisi if. -->
                         <?php endif; ?>
                         <!-- SAMPAI SINI -->
                     </div>
@@ -220,9 +242,12 @@ $detailBuku = $modelPeminjaman->getDetailPeminjaman($id_peminjaman);
                     <div class="card p-4 h-100">
                         <h5 class="fw-bold mb-3 border-bottom pb-2">Daftar Buku yang Dipinjam</h5>
 
+                        <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($detailBuku) -->
                         <?php if (!empty($detailBuku)): ?>
                             <div class="table-responsive">
+                                <!-- TABEL data. -->
                                 <table class="table table-hover align-middle mb-0">
+                                    <!-- Judul kolom tabel. -->
                                     <thead class="table-light">
                                         <tr>
                                             <th>Buku</th>
@@ -232,18 +257,23 @@ $detailBuku = $modelPeminjaman->getDetailPeminjaman($id_peminjaman);
                                             <th class="text-center">Status</th>
                                         </tr>
                                     </thead>
+                                    <!-- Isi tabel: satu baris (<tr>) untuk setiap data. -->
                                     <tbody>
+                                        <!-- PERULANGAN: blok di bawah (sampai endforeach) diulang untuk setiap elemen $detailBuku; elemen aktif ada di $item. -->
                                         <?php foreach ($detailBuku as $item): ?>
                                             <tr>
                                                 <td>
                                                     <div class="d-flex align-items-center">
                                                         <!-- CLEAN URL: Path gambar diubah ke Absolute Path -->
                                                         <?php if (!empty($item['cover'])): ?>
+                                                            <?php /* Gambar COVER buku: nama file dari database disambung ke folder ASSETS/COVER. */ ?>
                                                             <img src="/Aplikasi_Peminjaman_Buku/ASSETS/COVER/<?= htmlspecialchars($item['cover']) ?>" class="cover-buku me-3" alt="Cover">
+                                                        <?php /* ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. */ ?>
                                                         <?php else: ?>
                                                             <div class="bg-light border rounded d-flex align-items-center justify-content-center me-3 cover-buku">
                                                                 <i class="fa-solid fa-book text-muted"></i>
                                                             </div>
+                                                        <?php /* Akhir kondisi if. */ ?>
                                                         <?php endif; ?>
                                                         <div>
                                                             <span class="fw-bold d-block"><?= htmlspecialchars($item['judul_buku']) ?></span>
@@ -274,18 +304,23 @@ $detailBuku = $modelPeminjaman->getDetailPeminjaman($id_peminjaman);
                                                     </span>
                                                 </td>
                                             </tr>
+                                        <?php /* Akhir perulangan foreach. */ ?>
                                         <?php endforeach; ?>
                                     </tbody>
                                 </table>
                             </div>
+                        <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
                         <?php else: ?>
                             <p class="text-muted">Tidak ada rincian buku pada peminjaman ini.</p>
+                        <!-- Akhir kondisi if. -->
                         <?php endif; ?>
                     </div>
                 </div>
             </div>
+        <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
         <?php else: ?>
             <div class="alert alert-danger">Data peminjaman tidak ditemukan.</div>
+        <!-- Akhir kondisi if. -->
         <?php endif; ?>
 
     </div>

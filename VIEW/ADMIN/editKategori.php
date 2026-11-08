@@ -1,11 +1,20 @@
 <?php
+// =====================================================================
+// FILE   : VIEW/ADMIN/editKategori.php  (URL: /admin/editKategori?id_kategori=..)
+// FUNGSI : FORM UBAH KATEGORI.
+// ALUR   : data lama diisikan ke form -> submit (POST) -> CONTROLLER/c_kategori.php?aksi=update.
+// =====================================================================
+// Mulai session hanya jika belum aktif (mencegah error session already started).
 if (session_status() === PHP_SESSION_NONE) {
+    // Mengaktifkan session (penyimpanan data login sementara di server).
     session_start();
 }
 
 // 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
+    // Jika yang login ternyata berrole 'siswa' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
+        // Alamat tujuan: halaman siswa terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
         header("Location: " . $kembali);
         exit;
@@ -29,6 +38,7 @@ if ($idKategori <= 0) {
 
 // 4. Panggil Model Kategori Langsung di View
 require_once __DIR__ . "/../../MODEL/m_kategori.php";
+// Buat objek dari class Kategori; variabel $kategoriModel dipakai untuk memanggil fungsi-fungsinya.
 $kategoriModel = new Kategori();
 
 // Ambil data detail kategori berdasarkan ID
@@ -45,10 +55,15 @@ if (!$dataKategori) {
 <!DOCTYPE html>
 <html lang="id">
 
+<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
+    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
+    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Judul yang tampil di tab browser. -->
     <title>Edit Kategori - Perpustakaan Online</title>
+    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
     <style>
         /* Reset & Base Styles */
         * {
@@ -211,6 +226,7 @@ if (!$dataKategori) {
     </style>
 </head>
 
+<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <!-- Sidebar Admin -->
@@ -230,32 +246,39 @@ if (!$dataKategori) {
                     <h3>Formulir Perubahan Kategori</h3>
                 </div>
 
+                <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($dataKategori) -->
                 <?php if (!empty($dataKategori)): ?>
 
                     <!-- Form POST tetap diarahkan ke Controller untuk eksekusi update query -->
                     <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_kategori.php?aksi=update" method="POST">
 
+                        <!-- Input TERSEMBUNYI 'id_kategori': membawa data ke controller tanpa ditampilkan ($_POST['id_kategori']). -->
                         <input type="hidden" name="id_kategori" value="<?= htmlspecialchars($dataKategori['id_kategori']) ?>">
 
                         <div class="form-group">
                             <label for="nama_kategori">Nama Kategori</label>
+                            <!-- Kolom input 'nama_kategori' (type=text) -> dibaca controller sebagai $_POST['nama_kategori']. -->
                             <input type="text" id="nama_kategori" name="nama_kategori" class="form-control" value="<?= htmlspecialchars($dataKategori['nama_kategori']) ?>" required>
                         </div>
 
                         <div class="form-group">
                             <label for="deskripsi">Deskripsi Kategori</label>
+                            <!-- Kolom teks panjang 'deskripsi' -> dibaca controller sebagai $_POST['deskripsi']. -->
                             <textarea id="deskripsi" name="deskripsi" class="form-control" rows="4"><?= htmlspecialchars($dataKategori['deskripsi'] ?? '') ?></textarea>
                         </div>
 
                         <div class="form-group">
                             <label for="status">Status</label>
+                            <!-- Dropdown 'status': nilai opsi yang dipilih dikirim sebagai kunci 'status'. -->
                             <select id="status" name="status" class="form-control" required>
+                                <!-- Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. -->
                                 <option value="aktif" <?= (strtolower($dataKategori['status'] ?? '') === 'aktif') ? 'selected' : '' ?>>Aktif</option>
                                 <option value="nonaktif" <?= (strtolower($dataKategori['status'] ?? '') === 'nonaktif') ? 'selected' : '' ?>>Nonaktif</option>
                             </select>
                         </div>
 
                         <div class="action-group">
+                            <!-- Tombol SUBMIT: mengirim form. -->
                             <button type="submit" class="btn btn-submit">Simpan Perubahan</button>
                             <!-- CLEAN URL: Kembali ke Daftar Kategori -->
                             <a href="/Aplikasi_Peminjaman_Buku/admin/daftarKategori" class="btn btn-cancel">Batal</a>
@@ -263,6 +286,7 @@ if (!$dataKategori) {
 
                     </form>
 
+                <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
                 <?php else: ?>
 
                     <div class="alert-error">Data kategori tidak ditemukan.</div>
@@ -271,6 +295,7 @@ if (!$dataKategori) {
                         <a href="/Aplikasi_Peminjaman_Buku/admin/daftarKategori" class="btn btn-cancel" style="display: inline-block;">Kembali ke Daftar Kategori</a>
                     </div>
 
+                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
             </div>
         </div>
