@@ -1,24 +1,20 @@
 <?php
 
-// =====================================================================
-// FILE   : MODEL/m_buku_penulis.php
-// FUNGSI : MODEL tabel penghubung `buku_penulis` (relasi BANYAK-KE-BANYAK:
-//          satu buku bisa punya banyak penulis, satu penulis bisa menulis
-//          banyak buku). Primary key gabungan: (id_buku, id_penulis).
-// =====================================================================
 require_once __DIR__ . "/m_koneksi.php";
 
-// Class BukuPenulis.
+/**
+ * Model tabel buku_penulis (relasi buku dan penulis).
+ */
 class BukuPenulis
 {
-    // Koneksi database.
     private $koneksi;
 
-    // Properti relasi: diisi controller sebelum insert().
     public $id_buku;
     public $id_penulis;
 
-    // Constructor: buka koneksi.
+    /**
+     * Membuka koneksi database.
+     */
     public function __construct()
     {
         $db = new Koneksi();
@@ -26,7 +22,11 @@ class BukuPenulis
     }
 
     // MENAMPILKAN SEMUA RELASI BUKU DAN PENULIS
-    // getAll(): semua pasangan buku-penulis lengkap dengan judul dan nama penulis (INNER JOIN 2 tabel).
+    /**
+     * Mengambil semua relasi buku dan penulis.
+     *
+     * @return array Daftar relasi
+     */
     public function getAll()
     {
         $query = "
@@ -56,7 +56,12 @@ class BukuPenulis
     }
 
     // MENCARI SEMUA PENULIS DARI SATU BUKU
-    // getPenulisByBuku($id_buku): daftar penulis dari SATU buku (untuk form edit buku).
+    /**
+     * Mengambil daftar penulis dari satu buku.
+     *
+     * @param int $id_buku ID buku
+     * @return array Daftar penulis
+     */
     public function getPenulisByBuku($id_buku)
     {
         $stmt = $this->koneksi->prepare("
@@ -90,7 +95,12 @@ class BukuPenulis
     }
 
     // MENCARI SEMUA BUKU DARI SATU PENULIS
-    // getBukuByPenulis($id_penulis): daftar buku dari SATU penulis.
+    /**
+     * Mengambil daftar buku dari satu penulis.
+     *
+     * @param int $id_penulis ID penulis
+     * @return array Daftar buku
+     */
     public function getBukuByPenulis($id_penulis)
     {
         $stmt = $this->koneksi->prepare("
@@ -124,7 +134,11 @@ class BukuPenulis
     }
 
     // MENAMBAHKAN PENULIS KE BUKU
-    // insert(): menghubungkan satu buku dengan satu penulis.
+    /**
+     * Menyimpan relasi buku dan penulis dari properti objek.
+     *
+     * @return bool
+     */
     public function insert()
     {
         $stmt = $this->koneksi->prepare("
@@ -137,7 +151,6 @@ class BukuPenulis
             return false;
         }
 
-        // Dua integer: id_buku dan id_penulis.
         $stmt->bind_param(
             "ii",
             $this->id_buku,
@@ -151,7 +164,13 @@ class BukuPenulis
     }
 
     // MENGHAPUS SATU RELASI
-    // delete(): menghapus SATU relasi tertentu (kedua id harus cocok).
+    /**
+     * Menghapus satu relasi buku dan penulis.
+     *
+     * @param int $id_buku ID buku
+     * @param int $id_penulis ID penulis
+     * @return bool
+     */
     public function delete($id_buku, $id_penulis)
     {
         $stmt = $this->koneksi->prepare("
@@ -164,7 +183,6 @@ class BukuPenulis
             return false;
         }
 
-        // Dua integer: id_buku dan id_penulis.
         $stmt->bind_param(
             "ii",
             $id_buku,
@@ -178,7 +196,12 @@ class BukuPenulis
     }
 
     // MENGHAPUS SEMUA PENULIS DARI SATU BUKU
-    // deleteByBuku($id_buku): menghapus SEMUA penulis dari satu buku. Dipakai saat update/hapus buku.
+    /**
+     * Menghapus semua relasi penulis dari satu buku.
+     *
+     * @param int $id_buku ID buku
+     * @return bool
+     */
     public function deleteByBuku($id_buku)
     {
         $stmt = $this->koneksi->prepare("

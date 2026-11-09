@@ -7,7 +7,6 @@
 #          folder/file penting, 4) CLEAN URL: mengubah alamat cantik seperti
 #          /admin/daftarBuku menjadi file PHP yang sebenarnya.
 # SYARAT : modul mod_rewrite aktif dan AllowOverride All (default di Laragon).
-# CATATAN: di .htaccess komentar memakai tanda # dan harus berada di awal baris.
 # =====================================================================
 # File yang dibuka pertama kali saat folder diakses (http://localhost/Aplikasi_Peminjaman_Buku).
 DirectoryIndex index.php
@@ -54,8 +53,7 @@ AddDefaultCharset UTF-8
     # ----------------------------------------------------------------------
     # AUTH
     # ----------------------------------------------------------------------
-    # Alamat tidak cocok file nyata, maka diperiksa aturan di bawah: pola ^...$ = harus sama persis dengan alamat; [QSA] = query string (?id=..) ikut dibawa; [L] = berhenti jika cocok.
-    # DI BAWAH INI semua rute aplikasi (clean URL) dibaca dari atas ke bawah.
+    # Rute aplikasi (clean URL): alamat dicocokkan dari atas ke bawah. [QSA] membawa query string (?id=..), [L] menghentikan aturan jika cocok.
     RewriteRule ^login$ VIEW/AUTH/login.php [QSA,L]
     # URL bersih /register -> VIEW/AUTH/register.php (VIEW langsung).
     RewriteRule ^register$ VIEW/AUTH/register.php [QSA,L]

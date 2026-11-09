@@ -1,21 +1,14 @@
 <?php
-// =====================================================================
-// FILE   : MODEL/m_users.php
-// FUNGSI : MODEL untuk tabel `users` (admin & siswa). Model = satu-satunya
-//          tempat yang bicara langsung ke database. Controller tinggal
-//          memanggil fungsi-fungsi di sini (getAll, insert, update, dst).
-// =====================================================================
 
-// Panggil file koneksi (satu folder dengan file ini, jadi cukup nama file).
 require_once 'm_koneksi.php';
 
+/**
+ * Model tabel users (admin dan siswa).
+ */
 class Users
 {
-    private $koneksi; // koneksi database
+    private $koneksi;
 
-    // PROPERTI = penampung data satu user. Controller mengisi nilainya
-    // (mis. $user->nama_lengkap = "Budi") lalu memanggil insert()/update().
-    // Nama properti sama dengan nama kolom di tabel users.
     public $id_user;
     public $nis_nip;
     public $nama_lengkap;
@@ -24,49 +17,50 @@ class Users
     public $password;
     public $role;
 
-    // Constructor: buka koneksi database begitu objek Users dibuat.
+    /**
+     * Membuka koneksi database.
+     */
     public function __construct()
     {
         $db = new Koneksi();
         $this->koneksi = $db->getKoneksi();
     }
 
-    // -----------------------------------------------------------------
-    // READ: ambil SEMUA user, yang terbaru (id terbesar) di paling atas.
-    // Dipakai halaman Daftar User admin.
-    // -----------------------------------------------------------------
+    // MENAMPILKAN SEMUA USER
+    /**
+     * Mengambil semua user (terbaru di atas).
+     *
+     * @return array Daftar user
+     */
     public function getAll()
     {
-        // ORDER BY id_user DESC = urut dari id terbesar ke terkecil.
         $query = "SELECT * FROM users ORDER BY id_user DESC";
 
-        // query() dipakai langsung karena TIDAK ada input dari pengguna
-        // (jadi aman tanpa prepared statement).
         $result = $this->koneksi->query($query);
-        $data = []; // wadah array kosong
+        $data = [];
 
-        // fetch_assoc() dipanggil berulang; tiap panggilan mengambil satu
-        // baris. Loop berhenti saat baris habis (hasilnya null/false).
         while ($row = $result->fetch_assoc()) {
-            $data[] = $row; // tambahkan baris ke array $data
+            $data[] = $row;
         }
 
-        return $data; // kembalikan array berisi semua user
+        return $data;
     }
 
-    // -----------------------------------------------------------------
-    // SEARCH: cari user berdasarkan kata kunci (fitur pencarian admin).
-    // -----------------------------------------------------------------
+    // MENCARI USER BERDASARKAN KEYWORD (PENCARIAN)
+    /**
+     * Mencari user berdasarkan NIS/NIP, nama, atau username.
+     *
+     * @param string $keyword Kata kunci pencarian
+     * @return array Daftar user yang sesuai
+     */
     public function search($keyword)
     {
-        // % = wildcard LIKE. "%abc%" artinya "mengandung abc" di posisi mana pun.
         $keyword = "%{$keyword}%";
-        // Cari di tiga kolom sekaligus: NIS/NIP, nama lengkap, username.
+        // Mencari berdasarkan NIS/NIP, Nama Lengkap, atau Username
         $stmt = $this->koneksi->prepare(
             "SELECT * FROM users WHERE nis_nip LIKE ? OR nama_lengkap LIKE ? OR username LIKE ? ORDER BY id_user DESC"
         );
 
-        // Tiga tanda tanya -> tiga string dengan nilai sama.
         $stmt->bind_param("sss", $keyword, $keyword, $keyword);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -78,36 +72,51 @@ class Users
         return $data;
     }
 
-    // -----------------------------------------------------------------
-    // READ satu user berdasarkan id_user (untuk form Edit User).
-    // -----------------------------------------------------------------
+    // MENCARI USER BERDASARKAN ID
+    /**
+     * Mengambil satu user berdasarkan ID.
+     *
+     * @param int $id_user ID user
+     * @return array|null Data user, atau null jika tidak ada
+     */
     public function getById($id_user)
     {
         $stmt = $this->koneksi->prepare(
             "SELECT * FROM users WHERE id_user = ?"
         );
 
-        $stmt->bind_param("i", $id_user); // "i" = integer
+        $stmt->bind_param("i", $id_user);
         $stmt->execute();
 
-        // Langsung kembalikan SATU baris (atau null bila tidak ada).
         return $stmt->get_result()->fetch_assoc();
     }
 
-    // READ satu user berdasarkan username (cek apakah username sudah dipakai).
+    // MENCARI USER BERDASARKAN USERNAME
+    /**
+     * Mengambil satu user berdasarkan username.
+     *
+     * @param string $username Username
+     * @return array|null Data user, atau null jika tidak ada
+     */
     public function getByUsername($username)
     {
         $stmt = $this->koneksi->prepare(
             "SELECT * FROM users WHERE username = ?"
         );
 
-        $stmt->bind_param("s", $username); // "s" = string
+        $stmt->bind_param("s", $username);
         $stmt->execute();
 
         return $stmt->get_result()->fetch_assoc();
     }
 
-    // READ satu user berdasarkan NIS/NIP (cek duplikat NIS/NIP).
+    // MENCARI USER BERDASARKAN nis_nip
+    /**
+     * Mengambil satu user berdasarkan NIS/NIP.
+     *
+     * @param string $nis_nip NIS/NIP
+     * @return array|null Data user, atau null jika tidak ada
+     */
     public function getByNis_nip($nis_nip)
     {
         $stmt = $this->koneksi->prepare(
@@ -120,11 +129,12 @@ class Users
         return $stmt->get_result()->fetch_assoc();
     }
 
-    // -----------------------------------------------------------------
-    // CREATE: tambah user baru. Nilainya diambil dari properti objek
-    // ($this->...) yang sudah diisi controller.
-    // Mengembalikan true jika berhasil, false jika gagal.
-    // -----------------------------------------------------------------
+    // TAMBAH USER
+    /**
+     * Menyimpan user baru dari properti objek.
+     *
+     * @return bool
+     */
     public function insert()
     {
         $stmt = $this->koneksi->prepare(
@@ -133,24 +143,25 @@ class Users
             VALUES (?, ?, ?, ?, ?, ?)"
         );
 
-        // 6 kolom, semuanya string -> "ssssss".
         $stmt->bind_param(
             "ssssss",
             $this->nis_nip,
             $this->nama_lengkap,
             $this->kelas,
             $this->username,
-            $this->password,  // sudah berupa hash (di-hash oleh controller)
+            $this->password,
             $this->role
         );
 
         return $stmt->execute();
     }
 
-    // -----------------------------------------------------------------
-    // UPDATE: ubah data user. Password TIDAK ikut diubah di sini
-    // (ada fungsi khusus updatePassword di bawah).
-    // -----------------------------------------------------------------
+    // UPDATE USER
+    /**
+     * Mengubah data user dari properti objek (tanpa password).
+     *
+     * @return bool
+     */
     public function update()
     {
         $stmt = $this->koneksi->prepare(
@@ -160,10 +171,9 @@ class Users
                 kelas = ?,
                 username = ?,
                 role = ?
-             WHERE id_user = ?"   // WHERE wajib! tanpa ini SEMUA user ikut berubah
+             WHERE id_user = ?"
         );
 
-        // 5 string + 1 integer (id_user) -> "sssssi".
         $stmt->bind_param(
             "sssssi",
             $this->nis_nip,
@@ -177,9 +187,12 @@ class Users
         return $stmt->execute();
     }
 
-    // -----------------------------------------------------------------
-    // UPDATE PASSWORD: hanya mengganti kolom password satu user.
-    // -----------------------------------------------------------------
+    // UPDATE PASSWORD
+    /**
+     * Mengganti password user dari properti objek.
+     *
+     * @return bool
+     */
     public function updatePassword()
     {
         $stmt = $this->koneksi->prepare(
@@ -187,7 +200,6 @@ class Users
              WHERE id_user = ?"
         );
 
-        // "si" = password (string) + id_user (integer).
         $stmt->bind_param(
             "si",
             $this->password,
@@ -197,12 +209,13 @@ class Users
         return $stmt->execute();
     }
 
-    // -----------------------------------------------------------------
-    // DELETE: hapus user berdasarkan id.
-    // CATATAN: tabel peminjaman punya foreign key ke users dengan
-    // ON DELETE RESTRICT, jadi user yang sudah pernah meminjam TIDAK
-    // bisa dihapus (execute() akan gagal / false).
-    // -----------------------------------------------------------------
+    // HAPUS USER
+    /**
+     * Menghapus user; gagal jika user sudah memiliki peminjaman.
+     *
+     * @param int $id_user ID user
+     * @return bool
+     */
     public function delete($id_user)
     {
         $stmt = $this->koneksi->prepare(

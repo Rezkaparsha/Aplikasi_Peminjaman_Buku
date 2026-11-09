@@ -94,7 +94,7 @@ Admin dapat:
 - Denda keterlambatan: **Rp 1.000 per hari** sejak melewati batas pengembalian
 - Denda tambahan untuk buku Rusak/Hilang (nominal diisi admin)
 - Denda dicatat di tabel `denda` dan di histori transaksi
-- Catatan: halaman untuk membayar/mengelola denda belum tersedia di antarmuka; kerangka `c_denda.php` dan `m_denda.php` ada tetapi belum tersambung ke rute
+- Status pembayaran denda tersimpan di database (kolom `status_pembayaran`); halaman khusus pengelolaannya direncanakan sebagai pengembangan selanjutnya
 
 ### 📋 Histori Transaksi
 

@@ -1,20 +1,8 @@
 <?php
 
-// =====================================================================
-// FILE   : CONTROLLER/c_denda.php
-// FUNGSI : Controller untuk data DENDA (lihat, tambah, ubah, bayar, hapus).
-// CATATAN BELAJAR (dari pemeriksaan seluruh proyek):
-//  - File ini TIDAK punya router/switch dan tidak dipanggil dari .htaccess maupun file lain.
-//  - Tidak ada session_start() dan require_once memakai path relatif 'm_denda.php',
-//    padahal m_denda.php berada di folder MODEL (bukan CONTROLLER).
-//  Jadi file ini sebaiknya dianggap kerangka fitur denda yang belum tersambung.
-//  Denda yang tampil/tersimpan di aplikasi dihitung & disimpan oleh
-//  M_Peminjaman::kembalikanBuku() saat pengembalian diproses.
-// =====================================================================
-// Memuat model Denda.
 require_once 'm_denda.php';
 
-// Gerbang admin (butuh session aktif yang tidak dimulai di file ini).
+// Hanya admin yang boleh mengakses
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
     $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
     if (!isset($_SESSION['id_user'])) {
@@ -24,15 +12,18 @@ if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
-// Catat halaman admin terakhir.
 $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
-// Class pembungkus fungsi model Denda.
+/**
+ * Controller untuk data denda.
+ */
 class DendaController
 {
-    // Objek model Denda.
     private $denda;
 
+    /**
+     * Membuat objek model denda.
+     */
     public function __construct()
     {
         $this->denda = new Denda();
@@ -41,7 +32,11 @@ class DendaController
 
     // SEMUA DENDA
 
-    // index(): semua denda (join ke buku dan nama siswa).
+    /**
+     * Mengambil semua data denda.
+     *
+     * @return array Daftar denda
+     */
     public function index()
     {
         return $this->denda->getAll();
@@ -50,7 +45,12 @@ class DendaController
 
     // DETAIL DENDA
 
-    // detail(): satu denda berdasarkan id_denda.
+    /**
+     * Mengambil satu denda berdasarkan ID.
+     *
+     * @param int $id_denda ID denda
+     * @return array|null Data denda, atau null jika tidak ada
+     */
     public function detail($id_denda)
     {
         return $this->denda->getById($id_denda);
@@ -59,7 +59,12 @@ class DendaController
 
     // DENDA BERDASARKAN DETAIL PEMINJAMAN
 
-    // berdasarkanDetail(): denda milik satu baris detail peminjaman.
+    /**
+     * Mengambil denda milik satu detail peminjaman.
+     *
+     * @param int $id_detail ID detail peminjaman
+     * @return array Daftar denda
+     */
     public function berdasarkanDetail($id_detail)
     {
         return $this->denda->getByDetail($id_detail);
@@ -68,7 +73,18 @@ class DendaController
 
     // TAMBAH DENDA
 
-    // tambah(): isi properti model lalu insert().
+    /**
+     * Menyimpan denda baru.
+     *
+     * @param int $id_detail ID detail peminjaman
+     * @param string $jenis_denda Jenis denda
+     * @param int $jumlah_hari_terlambat Jumlah hari terlambat
+     * @param int $jumlah_denda Nominal denda (rupiah)
+     * @param string $tanggal_denda Tanggal denda
+     * @param string $status_pembayaran Status pembayaran
+     * @param string $keterangan Keterangan tambahan
+     * @return bool
+     */
     public function tambah(
         $id_detail,
         $jenis_denda,
@@ -101,7 +117,18 @@ class DendaController
 
     // UPDATE DENDA
 
-    // update(): ubah data denda berdasarkan id_denda.
+    /**
+     * Mengubah data denda.
+     *
+     * @param int $id_denda ID denda
+     * @param string $jenis_denda Jenis denda
+     * @param int $jumlah_hari_terlambat Jumlah hari terlambat
+     * @param int $jumlah_denda Nominal denda (rupiah)
+     * @param string $tanggal_denda Tanggal denda
+     * @param string $status_pembayaran Status pembayaran
+     * @param string $keterangan Keterangan tambahan
+     * @return bool
+     */
     public function update(
         $id_denda,
         $jenis_denda,
@@ -135,7 +162,12 @@ class DendaController
 
     // BAYAR DENDA
 
-    // bayar(): menandai denda lunas dengan mengisi status_pembayaran = 'Sudah Dibayar'.
+    /**
+     * Menandai denda sebagai sudah dibayar.
+     *
+     * @param int $id_denda ID denda
+     * @return bool
+     */
     public function bayar($id_denda)
     {
         return $this->denda->updateStatusPembayaran(
@@ -147,7 +179,12 @@ class DendaController
 
     // HAPUS
 
-    // hapus(): menghapus satu denda.
+    /**
+     * Menghapus denda.
+     *
+     * @param int $id_denda ID denda
+     * @return bool
+     */
     public function hapus($id_denda)
     {
         return $this->denda->delete($id_denda);

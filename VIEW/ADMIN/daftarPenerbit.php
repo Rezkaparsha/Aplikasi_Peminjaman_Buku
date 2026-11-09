@@ -1,20 +1,13 @@
 <?php
-// =====================================================================
-// FILE   : VIEW/ADMIN/daftarPenerbit.php  (URL: /admin/daftarPenerbit)
-// FUNGSI : DAFTAR PENERBIT admin: tabel penerbit + tombol tambah/edit/hapus.
-// DATA   : model Penerbit::getAll() (view memanggil model sendiri). Hapus -> konfirmasi JS -> CONTROLLER/c_penerbit.php?aksi=hapus.
-// =====================================================================
-// Mulai session hanya jika belum aktif (mencegah error session already started).
+// Halaman: Daftar penerbit
 if (session_status() === PHP_SESSION_NONE) {
-    // Mengaktifkan session (penyimpanan data login sementara di server).
+    // Mulai session
     session_start();
 }
 
 // 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    // Jika yang login ternyata berrole 'siswa' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
-        // Alamat tujuan: halaman siswa terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
         header("Location: " . $kembali);
         exit;
@@ -29,28 +22,22 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 // 3. Panggil Model Langsung di View
 require_once __DIR__ . "/../../MODEL/m_penerbit.php";
 
-// Buat objek dari class Penerbit; variabel $penerbitModel dipakai untuk memanggil fungsi-fungsinya.
+// Membuat objek model
 $penerbitModel = new Penerbit();
-// Panggil method getAll() milik objek $penerbitModel; hasilnya disimpan di $daftarPenerbit.
+// Mengambil data dari model
 $daftarPenerbit = $penerbitModel->getAll();
 
 // ==========================================
 // LOGIKA PAGINATION (10 Data per Halaman)
 // ==========================================
 $limit = 10;
-// Total seluruh data (count = jumlah elemen array).
 $total_data = count($daftarPenerbit);
-// Jumlah halaman = total data / limit, dibulatkan ke atas (ceil).
 $total_pages = ceil($total_data / $limit);
 
-// Nomor halaman aktif dari URL (?page=); default halaman 1.
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-// Jaga nomor halaman: tidak boleh kurang dari 1.
 if ($page < 1) $page = 1;
-// Jaga nomor halaman: tidak boleh melebihi halaman terakhir.
 if ($page > $total_pages && $total_pages > 0) $page = $total_pages;
 
-// Posisi data pertama pada halaman aktif (offset).
 $offset = ($page - 1) * $limit;
 
 // Potong array data sesuai halaman aktif
@@ -58,13 +45,9 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
 ?>
 <!DOCTYPE html>
 <html lang="id">
-<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
-    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
-    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Judul yang tampil di tab browser. -->
     <title>Daftar Penerbit - Perpustakaan Online</title>
         <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -75,7 +58,7 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
+    <!-- CSS halaman -->
     <style>
         /* Reset & Base Styles */
         * {
@@ -305,7 +288,6 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
         }
     </style>
 </head>
-<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <!-- Sidebar Admin -->
@@ -337,27 +319,23 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
                 <?php if (isset($_SESSION['error'])): ?>
                     <div class="alert-banner alert-banner-error">
                         <span>⚠️</span>
-                        <!-- htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). -->
                         <div><?= htmlspecialchars($_SESSION['error']); ?></div>
                     </div>
                     <?php unset($_SESSION['error']); ?>
-                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
 
-                <!-- PESAN SUKSES (flash message): tampil bila controller mengisi $_SESSION['success']; langsung dihapus setelah tampil. -->
+                <!-- Notifikasi sukses -->
                 <?php if (isset($_SESSION['success'])): ?>
                     <div class="alert-banner alert-banner-success">
                         <span>✅</span>
                         <div><?= htmlspecialchars($_SESSION['success']); ?></div>
                     </div>
                     <?php unset($_SESSION['success']); ?>
-                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
 
                 <div class="table-responsive">
-                    <!-- TABEL data. -->
+                    <!-- Tabel data -->
                     <table class="data-table">
-                        <!-- Judul kolom tabel. -->
                         <thead>
                             <tr>
                                 <th style="width: 5%;">No</th>
@@ -369,15 +347,11 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
                                 <th style="width: 10%;">Aksi</th>
                             </tr>
                         </thead>
-                        <!-- Isi tabel: satu baris (<tr>) untuk setiap data. -->
                         <tbody>
-                            <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($penerbitPaginated) -->
                             <?php if (!empty($penerbitPaginated)): ?>
                                 <?php $no = $offset + 1; ?>
-                                <!-- PERULANGAN: blok di bawah (sampai endforeach) diulang untuk setiap elemen $penerbitPaginated; elemen aktif ada di $penerbit. -->
                                 <?php foreach ($penerbitPaginated as $penerbit): ?>
                                     <tr>
-                                        <?php /* Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. */ ?>
                                         <td><?= $no++ ?></td>
                                         <td><strong><?= htmlspecialchars($penerbit['nama_penerbit']) ?></strong></td>
                                         <td><?= htmlspecialchars($penerbit['alamat'] ?? '-') ?></td>
@@ -388,25 +362,20 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
                                             <div class="action-group">
                                                 <!-- CLEAN URL: Edit Penerbit -->
                                                 <a href="/Aplikasi_Peminjaman_Buku/admin/editPenerbit?id_penerbit=<?= $penerbit['id_penerbit'] ?>" class="btn btn-edit">Edit</a>
-                                                <?php /* Tombol HAPUS: memanggil fungsi JavaScript konfirmasiHapus() (dialog 'Yakin?') sebelum data benar-benar dihapus. */ ?>
                                                 <a href="#" onclick="konfirmasiHapus(<?= $penerbit['id_penerbit'] ?>)" class="btn btn-delete">Hapus</a>
                                             </div>
                                         </td>
                                     </tr>
-                                <?php /* Akhir perulangan foreach. */ ?>
                                 <?php endforeach; ?>
-                            <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
                             <?php else: ?>
                                 <tr>
                                     <td colspan="7" class="text-center">Belum ada data penerbit.</td>
                                 </tr>
-                            <!-- Akhir kondisi if. -->
                             <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($daftarPenerbit) -->
                 <?php if (!empty($daftarPenerbit)): ?>
                     <div class="table-footer">
                         <p class="total-data">Menampilkan <strong><?= count($penerbitPaginated) ?></strong> dari <strong><?= $total_data ?></strong> total penerbit</p>
@@ -414,13 +383,10 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
                         <!-- KONTROL PAGINATION -->
                         <?php if ($total_pages > 1): ?>
                             <ul class="pagination">
-                                <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika $page > 1 -->
                                 <?php if ($page > 1): ?>
                                     <li><a href="?page=<?= $page - 1 ?>">« Prev</a></li>
-                                <!-- Akhir kondisi if. -->
                                 <?php endif; ?>
 
-                                <!-- PERULANGAN for ($i = 1; $i <= $total_pages; $i++): blok di bawah diulang sesuai kondisi ini (misalnya membuat tombol nomor halaman). -->
                                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                                     <li>
                                         <a href="?page=<?= $i ?>" class="<?= ($i === $page) ? 'active' : '' ?>">
@@ -429,16 +395,12 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
                                     </li>
                                 <?php endfor; ?>
 
-                                <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika $page < $total_pages -->
                                 <?php if ($page < $total_pages): ?>
                                     <li><a href="?page=<?= $page + 1 ?>">Next »</a></li>
-                                <!-- Akhir kondisi if. -->
                                 <?php endif; ?>
                             </ul>
-                        <!-- Akhir kondisi if. -->
                         <?php endif; ?>
                     </div>
-                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
 
             </div>
@@ -450,9 +412,8 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
 
     <!-- JAVASCRIPT SWEETALERT UNTUK KONFIRMASI HAPUS -->
     <script>
-        // FUNGSI konfirmasiHapus(id): menampilkan dialog 'Yakin hapus?'. Jika pengguna menekan Ya, browser dipindah ke controller dengan ?aksi=hapus&id_...=ID sehingga data dihapus.
+        // Konfirmasi sebelum menghapus data
         function konfirmasiHapus(id) {
-            // Tampilkan dialog SweetAlert2 (popup).
             Swal.fire({
                 title: 'Apakah Anda yakin?',
                 text: "Data penerbit yang dihapus tidak dapat dikembalikan!",
@@ -463,7 +424,6 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
                 confirmButtonText: 'Ya, Hapus!',
                 cancelButtonText: 'Batal'
             }).then((result) => {
-                // Jika pengguna menekan tombol konfirmasi (Ya)...
                 if (result.isConfirmed) {
                     // Absolute path ke controller hapus
                     window.location.href = "/Aplikasi_Peminjaman_Buku/CONTROLLER/c_penerbit.php?aksi=hapus&id_penerbit=" + id;

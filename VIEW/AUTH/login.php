@@ -1,16 +1,10 @@
 <?php
-// =====================================================================
-// FILE   : VIEW/AUTH/login.php  (URL: /login)
-// FUNGSI : Halaman LOGIN (form NIS/NIP atau username + password).
-// ALUR   : submit form (POST) -> CONTROLLER/c_login.php?aksi=login -> sukses: dashboard sesuai role; gagal: kembali ke sini dengan pesan error.
-// Pesan error/sukses datang dari $_SESSION (flash message) yang diisi controller.
-// =====================================================================
-// Mengaktifkan session (penyimpanan data login sementara di server).
+// Halaman: Halaman login
+// Mulai session
 session_start();
 
 // Jika user sudah login, arahkan langsung ke halaman masing-masing
 if (isset($_SESSION['id_user'])) {
-    // Jika yang login ternyata berrole 'admin' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
         header("Location: /Aplikasi_Peminjaman_Buku/CONTROLLER/c_peminjaman.php?aksi=admin");
         exit;
@@ -23,13 +17,9 @@ if (isset($_SESSION['id_user'])) {
 
 <!DOCTYPE html>
 <html lang="id">
-<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
-    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
-    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Judul yang tampil di tab browser. -->
     <title>Login - Aplikasi Perpustakaan</title>
     
     <!-- Bootstrap 5 CSS -->
@@ -37,7 +27,7 @@ if (isset($_SESSION['id_user'])) {
     <!-- FontAwesome Icon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
+    <!-- CSS halaman -->
     <style>
         body {
             background-color: #f1f5f9;
@@ -57,7 +47,6 @@ if (isset($_SESSION['id_user'])) {
         }
     </style>
 </head>
-<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body class="d-flex align-items-center justify-content-center min-vh-100 py-5">
 
 <div class="container" style="max-width: 420px;">
@@ -65,22 +54,19 @@ if (isset($_SESSION['id_user'])) {
     <!-- Alert Notifikasi Session -->
     <?php if (isset($_SESSION['error'])): ?>
         <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm mb-3" role="alert">
-            <!-- htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). -->
             <i class="fa-solid fa-circle-exclamation me-2"></i><?= htmlspecialchars($_SESSION['error']) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php unset($_SESSION['error']); ?>
-    <!-- Akhir kondisi if. -->
     <?php endif; ?>
 
-    <!-- PESAN SUKSES (flash message): tampil bila controller mengisi $_SESSION['success']; langsung dihapus setelah tampil. -->
+    <!-- Notifikasi sukses -->
     <?php if (isset($_SESSION['success'])): ?>
         <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-3" role="alert">
             <i class="fa-solid fa-circle-check me-2"></i><?= htmlspecialchars($_SESSION['success']) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php unset($_SESSION['success']); ?>
-    <!-- Akhir kondisi if. -->
     <?php endif; ?>
 
     <div class="card card-login">
@@ -91,14 +77,13 @@ if (isset($_SESSION['id_user'])) {
         </div>
 
         <div class="card-body p-4">
-            <!-- FORM: saat disubmit, data dikirim dengan method POST ke /Aplikasi_Peminjaman_Buku/CONTROLLER/c_login.php?aksi=login. Atribut name pada setiap input menjadi kunci $_POST['...'] di controller. -->
+            <!-- Form (POST) ke CONTROLLER/c_login.php?aksi=login -->
             <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_login.php?aksi=login" method="POST">
                 
                 <div class="mb-3">
                     <label class="form-label small fw-semibold">NIS / NIP / Username</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light text-muted"><i class="fa-solid fa-user"></i></span>
-                        <!-- Kolom input 'nis_nip' (type=text) -> dibaca controller sebagai $_POST['nis_nip']. -->
                         <input type="text" name="nis_nip" class="form-control" placeholder="Masukkan NIS/NIP" required autofocus>
                     </div>
                 </div>
@@ -107,12 +92,10 @@ if (isset($_SESSION['id_user'])) {
                     <label class="form-label small fw-semibold">Password</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light text-muted"><i class="fa-solid fa-lock"></i></span>
-                        <!-- Kolom input 'password' (type=password) -> dibaca controller sebagai $_POST['password']. -->
                         <input type="password" name="password" class="form-control" placeholder="Masukkan password" required>
                     </div>
                 </div>
 
-                <!-- Tombol SUBMIT: mengirim form. -->
                 <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill fw-bold mb-3">
                     <i class="fa-solid fa-right-to-bracket me-2"></i>Masuk
                 </button>
@@ -128,7 +111,6 @@ if (isset($_SESSION['id_user'])) {
     </div>
 </div>
 
-<!-- Memuat JavaScript Bootstrap (alert yang bisa ditutup, modal, dsb). -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
