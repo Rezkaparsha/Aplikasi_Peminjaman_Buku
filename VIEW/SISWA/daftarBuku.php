@@ -26,36 +26,18 @@ $id_user = (int)$_SESSION['id_user'];
 
 // Menggunakan Model
 require_once __DIR__ . "/../../MODEL/m_buku.php";
-// Memuat model m_kategori
-require_once __DIR__ . "/../../MODEL/m_kategori.php";
-// Memuat model m_penulis
-require_once __DIR__ . "/../../MODEL/m_penulis.php";
-// Memuat model m_penerbit
-require_once __DIR__ . "/../../MODEL/m_penerbit.php";
 
 // Membuat objek model
 $bukuModel = new Buku();
-// Membuat objek model
-$kategoriModel = new Kategori();
-// Membuat objek model
-$penulisModel = new Penulis();
-// Membuat objek model
-$penerbitModel = new Penerbit();
-
-// Ambil data untuk opsi dropdown filter
-$daftarKategori = $kategoriModel->getAll();
-$daftarPenulis  = $penulisModel->getAll();
-// Mengambil data dari model
-$daftarPenerbit = $penerbitModel->getAll();
 
 // Tangkap nilai input GET jika ada
-$keyword     = trim($_GET['keyword'] ?? '');
-$id_kategori = $_GET['id_kategori'] ?? '';
-$id_penulis  = $_GET['id_penulis'] ?? '';
-$id_penerbit = $_GET['id_penerbit'] ?? '';
+$keyword  = trim($_GET['keyword'] ?? '');
+$kategori = trim($_GET['kategori'] ?? '');
+$penulis  = trim($_GET['penulis'] ?? '');
+$penerbit = trim($_GET['penerbit'] ?? '');
 
 // Eksekusi fungsi pencarian & filter
-$allBuku = $bukuModel->cariDanFilterBuku($keyword, $id_kategori, $id_penulis, $id_penerbit);
+$allBuku = $bukuModel->cariDanFilterBuku($keyword, $kategori, $penulis, $penerbit);
 
 // Filter hanya buku yang memiliki stok lebih dari 0
 $daftarBuku = array_filter($allBuku, function ($buku) {
@@ -95,6 +77,11 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
     <!-- Font Awesome (ikon) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="website icon" href="/Aplikasi_Peminjaman_Buku/ASSETS/logoApp.jpg">
+    
+    <!-- CSS Select2 (Dibutuhkan untuk dropdown elegan yang bisa diketik) -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
     <!-- CSS halaman -->
     <style>
         /* 1. Kunci Layar Utama */
@@ -309,33 +296,21 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                             </div>
                         </div>
                         <div class="col-12 col-md-2">
-                            <select name="id_kategori" class="form-select">
-                                <option value="">Semua Kategori</option>
-                                <?php foreach ($daftarKategori as $kat): ?>
-                                    <option value="<?= $kat['id_kategori'] ?>" <?= ($id_kategori == $kat['id_kategori']) ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($kat['nama_kategori']) ?>
-                                    </option>
-                                <?php endforeach; ?>
+                            <select name="kategori" data-cari="kategori" class="form-select select2-ajax" data-placeholder="Kategori...">
+                                <option value=""></option>
+                                <?php if($kategori): ?><option value="<?= htmlspecialchars($kategori) ?>" selected><?= htmlspecialchars($kategori) ?></option><?php endif; ?>
                             </select>
                         </div>
                         <div class="col-12 col-md-2">
-                            <select name="id_penulis" class="form-select">
-                                <option value="">Semua Penulis</option>
-                                <?php foreach ($daftarPenulis as $pen): ?>
-                                    <option value="<?= $pen['id_penulis'] ?>" <?= ($id_penulis == $pen['id_penulis']) ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($pen['nama_penulis']) ?>
-                                    </option>
-                                <?php endforeach; ?>
+                            <select name="penulis" data-cari="penulis" class="form-select select2-ajax" data-placeholder="Penulis...">
+                                <option value=""></option>
+                                <?php if($penulis): ?><option value="<?= htmlspecialchars($penulis) ?>" selected><?= htmlspecialchars($penulis) ?></option><?php endif; ?>
                             </select>
                         </div>
                         <div class="col-12 col-md-2">
-                            <select name="id_penerbit" class="form-select">
-                                <option value="">Semua Penerbit</option>
-                                <?php foreach ($daftarPenerbit as $penb): ?>
-                                    <option value="<?= $penb['id_penerbit'] ?>" <?= ($id_penerbit == $penb['id_penerbit']) ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($penb['nama_penerbit']) ?>
-                                    </option>
-                                <?php endforeach; ?>
+                            <select name="penerbit" data-cari="penerbit" class="form-select select2-ajax" data-placeholder="Penerbit...">
+                                <option value=""></option>
+                                <?php if($penerbit): ?><option value="<?= htmlspecialchars($penerbit) ?>" selected><?= htmlspecialchars($penerbit) ?></option><?php endif; ?>
                             </select>
                         </div>
                         <div class="col-12 col-md-2 d-flex gap-2">
@@ -419,13 +394,13 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                                     <?php if ($page > 1): ?>
                                         <li>
                                             <!-- Bawa parameter pencarian ke halaman paginasi -->
-                                            <a href="?page=<?= $page - 1 ?>&keyword=<?= urlencode($keyword) ?>&id_kategori=<?= $id_kategori ?>&id_penulis=<?= $id_penulis ?>&id_penerbit=<?= $id_penerbit ?>">« Prev</a>
+                                            <a href="?page=<?= $page - 1 ?>&keyword=<?= urlencode($keyword) ?>&kategori=<?= urlencode($kategori) ?>&penulis=<?= urlencode($penulis) ?>&penerbit=<?= urlencode($penerbit) ?>">« Prev</a>
                                         </li>
                                     <?php endif; ?>
 
                                     <?php for ($p = 1; $p <= $total_pages; $p++): ?>
                                         <li>
-                                            <a href="?page=<?= $p ?>&keyword=<?= urlencode($keyword) ?>&id_kategori=<?= $id_kategori ?>&id_penulis=<?= $id_penulis ?>&id_penerbit=<?= $id_penerbit ?>" class="<?= ($p === $page) ? 'active' : '' ?>">
+                                            <a href="?page=<?= $p ?>&keyword=<?= urlencode($keyword) ?>&kategori=<?= urlencode($kategori) ?>&penulis=<?= urlencode($penulis) ?>&penerbit=<?= urlencode($penerbit) ?>" class="<?= ($p === $page) ? 'active' : '' ?>">
                                                 <?= $p ?>
                                             </a>
                                         </li>
@@ -433,7 +408,7 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
 
                                     <?php if ($page < $total_pages): ?>
                                         <li>
-                                            <a href="?page=<?= $page + 1 ?>&keyword=<?= urlencode($keyword) ?>&id_kategori=<?= $id_kategori ?>&id_penulis=<?= $id_penulis ?>&id_penerbit=<?= $id_penerbit ?>">Next »</a>
+                                            <a href="?page=<?= $page + 1 ?>&keyword=<?= urlencode($keyword) ?>&kategori=<?= urlencode($kategori) ?>&penulis=<?= urlencode($penulis) ?>&penerbit=<?= urlencode($penerbit) ?>">Next »</a>
                                         </li>
                                     <?php endif; ?>
                                 </ul>
@@ -461,8 +436,13 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
         </div>
     </div>
 
-    <!-- Bootstrap 5 JS -->
+    <!-- PANGGIL JQUERY & Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
         // Menampilkan atau menyembunyikan input jumlah saat buku dicentang atau dilepas
         function toggleJumlah(checkbox, index) {
@@ -491,6 +471,8 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
             bottomBar.style.display = checkboxes.length > 0 ? 'block' : 'none';
         }
     </script>
+    
+    <!-- PANGGIL LOGIKA JS FILTER BUKU ANDA -->
+    <script src="/Aplikasi_Peminjaman_Buku/ASSETS/JS/filter_buku.js"></script>
 </body>
-
 </html>

@@ -25,7 +25,12 @@ require_once __DIR__ . "/../../MODEL/m_penerbit.php";
 // Membuat objek model
 $penerbitModel = new Penerbit();
 // Mengambil data dari model
-$daftarPenerbit = $penerbitModel->getAll();
+// Kata kunci pencarian (kosong = tampilkan semua)
+$keyword = trim($_GET['keyword'] ?? '');
+$daftarPenerbit = ($keyword !== '') ? $penerbitModel->search($keyword) : $penerbitModel->getAll();
+
+// Awalan parameter pencarian untuk link pagination
+$queryKeyword = ($keyword !== '') ? 'keyword=' . urlencode($keyword) . '&' : '';
 
 // ==========================================
 // LOGIKA PAGINATION (10 Data per Halaman)
@@ -315,6 +320,15 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
                     </div>
                 </div>
 
+                <!-- PENCARIAN -->
+                <form method="GET" action="/Aplikasi_Peminjaman_Buku/admin/daftarPenerbit" style="display:flex; gap:8px; flex-wrap:wrap; margin:0 0 16px 0;">
+                    <input type="text" name="keyword" value="<?= htmlspecialchars($keyword) ?>" placeholder="Cari nama penerbit atau kota..." style="flex:1; min-width:200px; padding:10px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
+                    <button type="submit" class="btn btn-primary">Cari</button>
+                    <?php if ($keyword !== ''): ?>
+                        <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenerbit" style="padding:10px 14px; color:#475569; text-decoration:none;">Reset</a>
+                    <?php endif; ?>
+                </form>
+
                 <!-- BANNER NOTIFIKASI -->
                 <?php if (isset($_SESSION['error'])): ?>
                     <div class="alert-banner alert-banner-error">
@@ -384,19 +398,19 @@ $penerbitPaginated = array_slice($daftarPenerbit, $offset, $limit);
                         <?php if ($total_pages > 1): ?>
                             <ul class="pagination">
                                 <?php if ($page > 1): ?>
-                                    <li><a href="?page=<?= $page - 1 ?>">« Prev</a></li>
+                                    <li><a href="?<?= $queryKeyword ?>page=<?= $page - 1 ?>">« Prev</a></li>
                                 <?php endif; ?>
 
                                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                                     <li>
-                                        <a href="?page=<?= $i ?>" class="<?= ($i === $page) ? 'active' : '' ?>">
+                                        <a href="?<?= $queryKeyword ?>page=<?= $i ?>" class="<?= ($i === $page) ? 'active' : '' ?>">
                                             <?= $i ?>
                                         </a>
                                     </li>
                                 <?php endfor; ?>
 
                                 <?php if ($page < $total_pages): ?>
-                                    <li><a href="?page=<?= $page + 1 ?>">Next »</a></li>
+                                    <li><a href="?<?= $queryKeyword ?>page=<?= $page + 1 ?>">Next »</a></li>
                                 <?php endif; ?>
                             </ul>
                         <?php endif; ?>

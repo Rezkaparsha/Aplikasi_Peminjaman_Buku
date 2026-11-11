@@ -274,20 +274,21 @@ class Buku
     }
 
     /**
-     * Mencari buku berdasarkan judul dengan filter kategori, penulis, dan penerbit.
+     * Mencari buku berdasarkan judul dengan filter kategori, penulis, penerbit, dan kondisi stok.
      *
-     * @param string $keyword Kata kunci pencarian
-     * @param int $id_kategori ID kategori
-     * @param int $id_penulis ID penulis
-     * @param int $id_penerbit ID penerbit
+     * @param string $keyword  Kata kunci judul buku
+     * @param string $kategori Nama kategori (pencarian sebagian)
+     * @param string $penulis  Nama penulis (pencarian sebagian)
+     * @param string $penerbit Nama penerbit (pencarian sebagian)
+     * @param string $stok     Filter stok: habis, satu, menipis, atau tersedia (kosong = semua)
      * @return array Daftar buku yang sesuai
      */
-    public function cariDanFilterBuku($keyword = '', $id_kategori = '', $id_penulis = '', $id_penerbit = '')
+    public function cariDanFilterBuku($keyword = '', $kategori = '', $penulis = '', $penerbit = '', $stok = '')
     {
         $sql = "
-        SELECT 
-            b.*, 
-            k.nama_kategori, 
+        SELECT
+            b.*,
+            k.nama_kategori,
             p.nama_penerbit,
             GROUP_CONCAT(pn.nama_penulis SEPARATOR ', ') as daftar_penulis
         FROM buku b
@@ -297,32 +298,62 @@ class Buku
         LEFT JOIN penulis pn ON bp.id_penulis = pn.id_penulis
         WHERE 1=1
     ";
-
         $params = [];
         $types = "";
 
-        // Filter Kata Kunci (Judul Buku)
-        if (!empty($keyword)) {
+        // Filter judul buku
+        if ($keyword !== '') {
             $sql .= " AND b.judul_buku LIKE ?";
             $params[] = "%" . $keyword . "%";
             $types .= "s";
         }
 
-        // Filter Kategori
-        if (!empty($id_kategori)) {
-            $sql .= " AND b.id_kategori = ?";
-            $params[] = (int)$id_kategori;
-            $types .= "i";
+        // Filter kategori berdasarkan nama
+        if ($kategori !== '') {
+            $sql .= " AND k.nama_kategori LIKE ?";
+            $params[] = "%" . $kategori . "%";
+            $types .= "s";
         }
 
-        // Filter Penerbit
-        if (!empty($id_penerbit)) {
-            $sql .= " AND b.id_penerbit = ?";
-            $params[] = (int)$id_penerbit;
-            $types .= "i";
+        // Filter penerbit berdasarkan nama
+        if ($penerbit !== '') {
+            $sql .= " AND p.nama_penerbit LIKE ?";
+            $params[] = "%" . $penerbit . "%";
+            $types .= "s";
         }
 
-        $sql .= " GROUP BY b.id_buku ORDER BY b.judul_buku ASC";
+        // Filter penulis berdasarkan nama. EXISTS dipakai agar daftar penulis
+        // pada hasil tetap lengkap (tidak ikut tersaring)
+        if ($penulis !== '') {
+            $sql .= " AND EXISTS (
+                SELECT 1 FROM buku_penulis bp2
+                JOIN penulis pn2 ON bp2.id_penulis = pn2.id_penulis
+                WHERE bp2.id_buku = b.id_buku AND pn2.nama_penulis LIKE ?
+            )";
+            $params[] = "%" . $penulis . "%";
+            $types .= "s";
+        }
+
+        // Filter kondisi stok (nilainya dibatasi daftar tetap, bukan input bebas)
+        $batasMenipis = 5;
+        $urutan = "b.judul_buku ASC";
+        switch ($stok) {
+            case 'habis':
+                $sql .= " AND b.stok = 0";
+                break;
+            case 'satu':
+                $sql .= " AND b.stok = 1";
+                break;
+            case 'menipis':
+                $sql .= " AND b.stok BETWEEN 1 AND " . (int)$batasMenipis;
+                $urutan = "b.stok ASC, b.judul_buku ASC";
+                break;
+            case 'tersedia':
+                $sql .= " AND b.stok > 0";
+                break;
+        }
+
+        $sql .= " GROUP BY b.id_buku ORDER BY " . $urutan;
 
         $stmt = $this->koneksi->prepare($sql);
         if (!$stmt) {
@@ -338,18 +369,6 @@ class Buku
 
         $data = [];
         while ($row = $result->fetch_assoc()) {
-            // Filter Penulis (karena menggunakan relasi tabel perantara/many-to-many)
-            if (!empty($id_penulis)) {
-                // Cek apakah id_penulis ini ada di buku tersebut
-                $cekPenulis = $this->koneksi->prepare("SELECT 1 FROM buku_penulis WHERE id_buku = ? AND id_penulis = ?");
-                $cekPenulis->bind_param("ii", $row['id_buku'], $id_penulis);
-                $cekPenulis->execute();
-                if ($cekPenulis->get_result()->num_rows === 0) {
-                    $cekPenulis->close();
-                    continue; // Lewati jika penulis tidak cocok
-                }
-                $cekPenulis->close();
-            }
             $data[] = $row;
         }
 

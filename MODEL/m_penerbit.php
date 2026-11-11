@@ -59,6 +59,52 @@ class Penerbit
 
     // AMBIL PENERBIT BERDASARKAN ID
     /**
+     * Mencari penerbit berdasarkan nama atau kota.
+     *
+     * @param string $keyword Kata kunci pencarian
+     * @return array Daftar penerbit yang sesuai
+     */
+    public function search($keyword)
+    {
+        $keyword = "%{$keyword}%";
+        $stmt = $this->koneksi->prepare("SELECT id_penerbit, nama_penerbit, alamat, kota, telepon, email FROM penerbit WHERE (nama_penerbit LIKE ? OR kota LIKE ?) ORDER BY nama_penerbit ASC");
+        $stmt->bind_param("ss", $keyword, $keyword);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $data[] = $row;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Mengambil nama penerbit untuk daftar pilihan pada dropdown pencarian (jumlahnya dibatasi).
+     *
+     * @param string $keyword Kata kunci nama
+     * @param int $batas Jumlah data maksimum
+     * @return array Daftar nama penerbit
+     */
+    public function cariNama($keyword, $batas = 10)
+    {
+        $keyword = "%{$keyword}%";
+        $batas = (int)$batas;
+        $stmt = $this->koneksi->prepare("SELECT nama_penerbit FROM penerbit WHERE nama_penerbit LIKE ? ORDER BY nama_penerbit ASC LIMIT ?");
+        $stmt->bind_param("si", $keyword, $batas);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $data[] = $row['nama_penerbit'];
+        }
+
+        return $data;
+    }
+
+    /**
      * Mengambil satu data penerbit berdasarkan ID.
      *
      * @param int $id_penerbit ID penerbit

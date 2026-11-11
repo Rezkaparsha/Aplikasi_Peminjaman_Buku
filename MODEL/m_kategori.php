@@ -47,6 +47,52 @@ class Kategori
     }
 
     /**
+     * Mencari kategori berdasarkan nama atau deskripsi.
+     *
+     * @param string $keyword Kata kunci pencarian
+     * @return array Daftar kategori yang sesuai
+     */
+    public function search($keyword)
+    {
+        $keyword = "%{$keyword}%";
+        $stmt = $this->koneksi->prepare("SELECT id_kategori, nama_kategori, deskripsi, status FROM kategori WHERE (nama_kategori LIKE ? OR deskripsi LIKE ?) ORDER BY nama_kategori ASC");
+        $stmt->bind_param("ss", $keyword, $keyword);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $data[] = $row;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Mengambil nama kategori untuk daftar pilihan pada dropdown pencarian (jumlahnya dibatasi).
+     *
+     * @param string $keyword Kata kunci nama
+     * @param int $batas Jumlah data maksimum
+     * @return array Daftar nama kategori
+     */
+    public function cariNama($keyword, $batas = 10)
+    {
+        $keyword = "%{$keyword}%";
+        $batas = (int)$batas;
+        $stmt = $this->koneksi->prepare("SELECT nama_kategori FROM kategori WHERE nama_kategori LIKE ? ORDER BY nama_kategori ASC LIMIT ?");
+        $stmt->bind_param("si", $keyword, $batas);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $data[] = $row['nama_kategori'];
+        }
+
+        return $data;
+    }
+
+    /**
      * Mengambil satu data kategori berdasarkan ID.
      *
      * @param int $id_kategori ID kategori

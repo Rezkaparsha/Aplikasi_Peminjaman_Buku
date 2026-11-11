@@ -51,6 +51,52 @@ class Penulis
 
     // MENCARI PENULIS BERDASARKAN ID
     /**
+     * Mencari penulis berdasarkan nama.
+     *
+     * @param string $keyword Kata kunci pencarian
+     * @return array Daftar penulis yang sesuai
+     */
+    public function search($keyword)
+    {
+        $keyword = "%{$keyword}%";
+        $stmt = $this->koneksi->prepare("SELECT id_penulis, nama_penulis FROM penulis WHERE nama_penulis LIKE ? ORDER BY nama_penulis ASC");
+        $stmt->bind_param("s", $keyword);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $data[] = $row;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Mengambil nama penulis untuk daftar pilihan pada dropdown pencarian (jumlahnya dibatasi).
+     *
+     * @param string $keyword Kata kunci nama
+     * @param int $batas Jumlah data maksimum
+     * @return array Daftar nama penulis
+     */
+    public function cariNama($keyword, $batas = 10)
+    {
+        $keyword = "%{$keyword}%";
+        $batas = (int)$batas;
+        $stmt = $this->koneksi->prepare("SELECT nama_penulis FROM penulis WHERE nama_penulis LIKE ? ORDER BY nama_penulis ASC LIMIT ?");
+        $stmt->bind_param("si", $keyword, $batas);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $data[] = $row['nama_penulis'];
+        }
+
+        return $data;
+    }
+
+    /**
      * Mengambil satu data penulis berdasarkan ID.
      *
      * @param int $id_penulis ID penulis
