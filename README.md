@@ -4,6 +4,16 @@ Aplikasi Peminjaman Buku adalah sistem informasi perpustakaan berbasis web yang 
 
 ---
 
+## 🌐 Demo Aplikasi
+
+Aplikasi dapat diakses secara online melalui:
+
+🔗 https://apppeminjamanbuku.infinityfreeapp.com/
+
+> Gunakan akun demo yang tersedia pada bagian **Akun Demo** untuk mencoba fitur aplikasi.
+
+---
+
 ## 🎯 Tujuan Program
 
 Aplikasi ini dibuat untuk:
@@ -197,8 +207,16 @@ private $dbname = "db_perpustakaan";
 
 ## 6. Jalankan Aplikasi
 
+### Versi Lokal
+
 ```text
 http://localhost/Aplikasi_Peminjaman_Buku
+```
+
+### Versi Hosting (Online)
+
+```text
+https://apppeminjamanbuku.infinityfreeapp.com/
 ```
 
 ---
@@ -208,7 +226,7 @@ http://localhost/Aplikasi_Peminjaman_Buku
 ## Admin
 
 | Keterangan | Data |
-|------------|------------|
+|------------|------|
 | Username / NIS / NIP | 1234567890 |
 | Password | 123 |
 | Role | Admin |
@@ -216,7 +234,7 @@ http://localhost/Aplikasi_Peminjaman_Buku
 ## Siswa
 
 | Keterangan | Data |
-|------------|------------|
+|------------|------|
 | Username / NIS / NIP | 0060254015 |
 | Password | 123 |
 | Role | Siswa |
@@ -228,18 +246,17 @@ http://localhost/Aplikasi_Peminjaman_Buku
 ```text
 Aplikasi_Peminjaman_Buku
 │
-├── index.php            # pintu masuk, mengarahkan sesuai login & role
-├── .htaccess            # routing URL bersih + proteksi folder
-├── ASSETS/              # cover buku dan logo
-├── CONTROLLER/          # c_login, c_peminjaman, c_buku, c_kategori, c_penerbit,
-│                        # c_penulis, c_user, c_denda, c_histori
-├── MODEL/               # m_koneksi, m_users, m_buku, m_peminjaman, dll
+├── index.php
+├── .htaccess
+├── ASSETS/
+├── CONTROLLER/
+├── MODEL/
 ├── VIEW/
-│   ├── AUTH/            # login, register
-│   ├── ADMIN/           # halaman admin
-│   ├── SISWA/           # halaman siswa
-│   └── TEMPLATE/        # sidebar admin dan siswa
-└── DATABASE/            # db_perpustakaan.sql
+│   ├── AUTH/
+│   ├── ADMIN/
+│   ├── SISWA/
+│   └── TEMPLATE/
+└── DATABASE/
 ```
 
 ## Struktur Modul
@@ -283,6 +300,6 @@ Aplikasi Peminjaman Buku
 
 # 👨‍💻 Pengembang
 
-**Rezka Parsha**
+**Rezka Parsha Aqeela**
 
 Proyek ini dibuat sebagai media pembelajaran pengembangan aplikasi perpustakaan berbasis web menggunakan konsep Object-Oriented Programming (OOP) dan arsitektur MVC (Model View Controller) untuk menghasilkan kode yang lebih terstruktur, mudah dikembangkan, dan mudah dipelihara.
