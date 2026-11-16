@@ -1,20 +1,13 @@
 <?php
-// =====================================================================
-// FILE   : VIEW/ADMIN/tambahUser.php  (URL: /admin/tambahUser)
-// FUNGSI : FORM TAMBAH USER (admin atau siswa).
-// ALUR   : submit (POST) -> CONTROLLER/c_user.php?aksi=tambah.
-// =====================================================================
-// Mulai session hanya jika belum aktif (mencegah error session already started).
+// Halaman: Form tambah user
 if (session_status() === PHP_SESSION_NONE) {
-    // Mengaktifkan session (penyimpanan data login sementara di server).
+    // Mulai session
     session_start();
 }
 
 // Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    // Jika yang login ternyata berrole 'siswa' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
-        // Alamat tujuan: halaman siswa terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
         header("Location: " . $kembali);
         exit;
@@ -30,15 +23,11 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 <!DOCTYPE html>
 <html lang="id">
 
-<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
-    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
-    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Judul yang tampil di tab browser. -->
     <title>Tambah User - Perpustakaan Online</title>
-    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
+    <!-- CSS halaman -->
     <style>
         * {
             box-sizing: border-box;
@@ -187,7 +176,6 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
     </style>
 </head>
 
-<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <!-- Sidebar Admin -->
@@ -210,49 +198,41 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
                 <!-- ALERT NOTIFIKASI ERROR -->
                 <?php if (isset($_SESSION['error'])): ?>
                     <div class="alert-danger">
-                        <!-- htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). -->
                         <span>⚠️ <?= htmlspecialchars($_SESSION['error']) ?></span>
                     </div>
                     <?php unset($_SESSION['error']); ?>
-                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
 
-                <!-- FORM: saat disubmit, data dikirim dengan method POST ke /Aplikasi_Peminjaman_Buku/CONTROLLER/c_user.php?aksi=tambah. Atribut name pada setiap input menjadi kunci $_POST['...'] di controller. -->
+                <!-- Form (POST) ke CONTROLLER/c_user.php?aksi=tambah -->
                 <form id="formTambahUser" action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_user.php?aksi=tambah" method="POST">
 
                     <div class="form-group">
                         <label for="nis_nip">NIS / NIP</label>
-                        <!-- Kolom input 'nis_nip' (type=text) -> dibaca controller sebagai $_POST['nis_nip']. -->
                         <input type="text" id="nis_nip" name="nis_nip" class="form-control" placeholder="Masukkan NIS atau NIP (3-10 digit)" required>
                     </div>
 
                     <div class="form-group">
                         <label for="nama_lengkap">Nama Lengkap</label>
-                        <!-- Kolom input 'nama_lengkap' (type=text) -> dibaca controller sebagai $_POST['nama_lengkap']. -->
                         <input type="text" id="nama_lengkap" name="nama_lengkap" class="form-control" placeholder="Masukkan nama lengkap (huruf saja)" required>
                     </div>
 
                     <div class="form-group">
                         <label for="kelas">Kelas</label>
-                        <!-- Kolom input 'kelas' (type=text) -> dibaca controller sebagai $_POST['kelas']. -->
                         <input type="text" id="kelas" name="kelas" class="form-control" placeholder="Contoh: XII RPL 1">
                     </div>
                     
                     <div class="form-group">
                         <label for="username">Username</label>
-                        <!-- Kolom input 'username' (type=text) -> dibaca controller sebagai $_POST['username']. -->
                         <input type="text" id="username" name="username" class="form-control" placeholder="Masukkan username akun" required>
                     </div>
 
                     <div class="form-group">
                         <label for="password">Password</label>
-                        <!-- Kolom input 'password' (type=password) -> dibaca controller sebagai $_POST['password']. -->
                         <input type="password" id="password" name="password" class="form-control" placeholder="Masukkan password" required>
                     </div>
 
                     <div class="form-group">
                         <label for="role">Role / Akses</label>
-                        <!-- Dropdown 'role': nilai opsi yang dipilih dikirim sebagai kunci 'role'. -->
                         <select id="role" name="role" class="form-control" required>
                             <option value="">-- Pilih Role --</option>
                             <option value="admin">Admin</option>
@@ -261,7 +241,6 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
                     </div>
 
                     <div class="action-group">
-                        <!-- Tombol SUBMIT: mengirim form. -->
                         <button type="submit" id="btnSubmit" class="btn btn-submit">Simpan User</button>
                         <!-- CLEAN URL: Kembali ke Daftar User -->
                         <a href="/Aplikasi_Peminjaman_Buku/admin/daftarUser" class="btn btn-cancel">Batal</a>
@@ -274,9 +253,7 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
     <!-- SCRIPT MENCEGAH SPAM CLICK -->
     <script>
-        // Saat form disubmit: tombol dinonaktifkan dan teksnya diganti 'Menyimpan...' supaya form tidak terkirim dua kali (double submit).
         document.getElementById('formTambahUser').addEventListener('submit', function() {
-            // Ambil tombol submit.
             var btn = document.getElementById('btnSubmit');
             btn.disabled = true;
             btn.innerText = 'Menyimpan...';

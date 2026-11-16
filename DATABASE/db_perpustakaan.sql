@@ -235,7 +235,7 @@ INSERT INTO `detail_peminjaman` (`id_detail`, `id_peminjaman`, `id_buku`, `jumla
 --   - id_histori: Kunci utama, nomor urut otomatis.
 --   - id_peminjaman: Kunci tamu ke peminjaman.
 --   - id_detail: Kunci tamu ke detail_peminjaman.
---   - nis_nip: NIS/NIP siswa. CATATAN: bertipe int, sedangkan users.nis_nip bertipe varchar(10).
+--   - nis_nip: NIS/NIP siswa.
 --   - nama_siswa: Salinan nama siswa saat transaksi.
 --   - id_buku: Id buku (salinan).
 --   - judul_buku: Salinan judul buku.

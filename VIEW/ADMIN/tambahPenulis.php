@@ -1,20 +1,13 @@
 <?php
-// =====================================================================
-// FILE   : VIEW/ADMIN/tambahPenulis.php  (URL: /admin/tambahPenulis)
-// FUNGSI : FORM TAMBAH PENULIS.
-// ALUR   : submit (POST) -> CONTROLLER/c_penulis.php?aksi=tambah -> simpan -> kembali ke daftar.
-// =====================================================================
-// Mulai session hanya jika belum aktif (mencegah error session already started).
+// Halaman: Form tambah penulis
 if (session_status() === PHP_SESSION_NONE) {
-    // Mengaktifkan session (penyimpanan data login sementara di server).
+    // Mulai session
     session_start();
 }
 
 // 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    // Jika yang login ternyata berrole 'siswa' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
-        // Alamat tujuan: halaman siswa terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
         header("Location: " . $kembali);
         exit;
@@ -30,15 +23,11 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 <!DOCTYPE html>
 <html lang="id">
 
-<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
-    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
-    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Judul yang tampil di tab browser. -->
     <title>Tambah Penulis - Perpustakaan Online</title>
-    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
+    <!-- CSS halaman -->
     <style>
         /* Reset & Base Styles */
         * {
@@ -173,7 +162,6 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
     </style>
 </head>
 
-<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <!-- Sidebar Admin -->
@@ -193,17 +181,15 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
                     <h3>Formulir Tambah Penulis Baru</h3>
                 </div>
 
-                <!-- FORM: dikirim (POST) ke c_penulis.php?aksi=tambah. CATATAN BELAJAR: alamat action memakai path RELATIF (../../CONTROLLER/...). Karena halaman dibuka lewat clean URL /Aplikasi_Peminjaman_Buku/admin/tambahPenulis, dua tingkat naik berakhir di akar server (/CONTROLLER/...), bukan di folder aplikasi, sehingga kemungkinan besar 404. Form lain memakai path absolut /Aplikasi_Peminjaman_Buku/CONTROLLER/... yang aman. -->
+                <!-- Form (POST) ke ../../CONTROLLER/c_penulis.php?aksi=tambah -->
                 <form action="../../CONTROLLER/c_penulis.php?aksi=tambah" method="POST">
 
                     <div class="form-group">
                         <label for="nama_penulis">Nama Penulis</label>
-                        <!-- Kolom input 'nama_penulis' (type=text) -> dibaca controller sebagai $_POST['nama_penulis']. -->
                         <input type="text" id="nama_penulis" name="nama_penulis" class="form-control" placeholder="Masukkan nama penulis" required>
                     </div>
 
                     <div class="action-group">
-                        <!-- Tombol SUBMIT: mengirim form. -->
                         <button type="submit" class="btn btn-submit">Simpan</button>
                         <!-- CLEAN URL: Kembali ke Daftar Penulis -->
                         <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenulis" class="btn btn-cancel">Batal</a>

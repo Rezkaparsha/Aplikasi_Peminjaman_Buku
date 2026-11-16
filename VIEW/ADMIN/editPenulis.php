@@ -1,20 +1,13 @@
 <?php
-// =====================================================================
-// FILE   : VIEW/ADMIN/editPenulis.php  (URL: /admin/editPenulis?id_penulis=..)
-// FUNGSI : FORM UBAH PENULIS.
-// ALUR   : data lama diisikan ke form -> submit (POST) -> CONTROLLER/c_penulis.php?aksi=update.
-// =====================================================================
-// Mulai session hanya jika belum aktif (mencegah error session already started).
+// Halaman: Form ubah penulis
 if (session_status() === PHP_SESSION_NONE) {
-    // Mengaktifkan session (penyimpanan data login sementara di server).
+    // Mulai session
     session_start();
 }
 
 // 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    // Jika yang login ternyata berrole 'siswa' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
-        // Alamat tujuan: halaman siswa terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
         header("Location: " . $kembali);
         exit;
@@ -37,9 +30,9 @@ if ($idPenulis <= 0) {
 
 // 4. Panggil Model Data Penulis
 require_once __DIR__ . "/../../MODEL/m_penulis.php";
-// Buat objek dari class Penulis; variabel $penulisModel dipakai untuk memanggil fungsi-fungsinya.
+// Membuat objek model
 $penulisModel = new Penulis();
-// Panggil method getById() milik objek $penulisModel; hasilnya disimpan di $dataPenulis.
+// Mengambil data dari model
 $dataPenulis = $penulisModel->getById($idPenulis);
 
 if (!$dataPenulis) {
@@ -51,15 +44,11 @@ if (!$dataPenulis) {
 
 <!DOCTYPE html>
 <html lang="id">
-<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
-    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
-    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Judul yang tampil di tab browser. -->
     <title>Edit Penulis - Perpustakaan Online</title>
-    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
+    <!-- CSS halaman -->
     <style>
         /* Reset & Base Styles */
         * {
@@ -194,7 +183,6 @@ if (!$dataPenulis) {
         }
     </style>
 </head>
-<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <!-- Sidebar Admin -->
@@ -214,23 +202,19 @@ if (!$dataPenulis) {
                     <h3>Formulir Perubahan Penulis</h3>
                 </div>
 
-                <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($dataPenulis) -->
                 <?php if (!empty($dataPenulis)): ?>
 
-                    <!-- FORM: saat disubmit, data dikirim dengan method POST ke /Aplikasi_Peminjaman_Buku/CONTROLLER/c_penulis.php?aksi=update. Atribut name pada setiap input menjadi kunci $_POST['...'] di controller. -->
+                    <!-- Form (POST) ke CONTROLLER/c_penulis.php?aksi=update -->
                     <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_penulis.php?aksi=update" method="POST">
                         
-                        <!-- Input TERSEMBUNYI 'id_penulis': membawa data ke controller tanpa ditampilkan ($_POST['id_penulis']). -->
                         <input type="hidden" name="id_penulis" value="<?= htmlspecialchars($dataPenulis['id_penulis']) ?>">
 
                         <div class="form-group">
                             <label for="nama_penulis">Nama Penulis</label>
-                            <!-- Kolom input 'nama_penulis' (type=text) -> dibaca controller sebagai $_POST['nama_penulis']. -->
                             <input type="text" id="nama_penulis" name="nama_penulis" class="form-control" value="<?= htmlspecialchars($dataPenulis['nama_penulis']) ?>" required>
                         </div>
 
                         <div class="action-group">
-                            <!-- Tombol SUBMIT: mengirim form. -->
                             <button type="submit" class="btn btn-submit">Simpan Perubahan</button>
                             <!-- CLEAN URL: Kembali ke Daftar Penulis -->
                             <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenulis" class="btn btn-cancel">Batal</a>
@@ -238,7 +222,6 @@ if (!$dataPenulis) {
 
                     </form>
 
-                <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
                 <?php else: ?>
 
                     <div class="alert-error">Data penulis tidak ditemukan.</div>
@@ -247,7 +230,6 @@ if (!$dataPenulis) {
                         <a href="/Aplikasi_Peminjaman_Buku/admin/daftarPenulis" class="btn btn-cancel" style="display: inline-block;">Kembali ke Daftar Penulis</a>
                     </div>
 
-                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
 
             </div>

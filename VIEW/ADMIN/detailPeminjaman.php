@@ -1,21 +1,13 @@
 <?php
-// =====================================================================
-// FILE   : VIEW/ADMIN/detailPeminjaman.php  (URL: /admin/detailPeminjaman?id_peminjaman=..)
-// FUNGSI : DETAIL satu peminjaman untuk admin + tempat tiga aksi admin.
-// AKSI   : tiga form POST ke CONTROLLER/c_peminjaman.php: ?aksi=setujui, ?aksi=tolak, ?aksi=prosesKembali.
-// DATA   : getPeminjamanById() (header) dan getDetailPeminjaman() (daftar buku).
-// =====================================================================
-// Mulai session hanya jika belum aktif (mencegah error session already started).
+// Halaman: Detail peminjaman dan aksi admin (setujui, tolak, proses kembali)
 if (session_status() === PHP_SESSION_NONE) {
-    // Mengaktifkan session (penyimpanan data login sementara di server).
+    // Mulai session
     session_start();
 }
 
 // 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    // Jika yang login ternyata berrole 'siswa' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
-        // Alamat tujuan: halaman siswa terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
         header("Location: " . $kembali);
         exit;
@@ -24,7 +16,6 @@ if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
-// Catat alamat halaman ini sebagai halaman admin terakhir (dipakai untuk mengembalikan pengguna yang nyasar).
 $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
 // 2. Tangkap ID Peminjaman dari URL
@@ -39,14 +30,13 @@ if ($idPeminjaman <= 0) {
 
 // 3. Panggil Model Langsung
 require_once __DIR__ . "/../../MODEL/m_peminjaman.php";
-// Buat objek dari class M_Peminjaman; variabel $peminjamanModel dipakai untuk memanggil fungsi-fungsinya.
+// Membuat objek model
 $peminjamanModel = new M_Peminjaman();
 
 $dataPeminjaman   = $peminjamanModel->getPeminjamanById($idPeminjaman);
-// Panggil method getDetailPeminjaman() milik objek $peminjamanModel; hasilnya disimpan di $detailPeminjaman.
+// Mengambil data dari model
 $detailPeminjaman = $peminjamanModel->getDetailPeminjaman($idPeminjaman);
 
-// Data tidak ditemukan (id ngawur) -> pesan error dan kembali ke daftar.
 if (!$dataPeminjaman) {
     $_SESSION['error'] = "Data peminjaman tidak ditemukan.";
     // Clean URL: Redirect ke daftar Peminjaman
@@ -58,15 +48,11 @@ if (!$dataPeminjaman) {
 <!DOCTYPE html>
 <html lang="id">
 
-<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
-    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
-    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Judul yang tampil di tab browser. -->
     <title>Detail Peminjaman #<?= htmlspecialchars($idPeminjaman) ?> - Panel Admin</title>
-    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
+    <!-- CSS halaman -->
     <style>
         * {
             box-sizing: border-box;
@@ -314,7 +300,6 @@ if (!$dataPeminjaman) {
     </style>
 </head>
 
-<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <!-- Sidebar Admin -->
@@ -331,20 +316,17 @@ if (!$dataPeminjaman) {
             <!-- NOTIFIKASI -->
             <?php if (isset($_SESSION['success'])): ?>
                 <div class="alert-box alert-success">
-                    <!-- htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). -->
                     <?= htmlspecialchars($_SESSION['success']) ?>
                 </div>
                 <?php unset($_SESSION['success']); ?>
-            <!-- Akhir kondisi if. -->
             <?php endif; ?>
 
-            <!-- PESAN ERROR (flash message): tampil bila controller mengisi $_SESSION['error']; setelah tampil dihapus (unset) agar tidak muncul lagi saat halaman dimuat ulang. -->
+            <!-- Notifikasi error -->
             <?php if (isset($_SESSION['error'])): ?>
                 <div class="alert-box alert-danger">
                     <?= htmlspecialchars($_SESSION['error']) ?>
                 </div>
                 <?php unset($_SESSION['error']); ?>
-            <!-- Akhir kondisi if. -->
             <?php endif; ?>
 
             <!-- INFORMASI UTAMA TRANSAKSI -->
@@ -375,7 +357,6 @@ if (!$dataPeminjaman) {
                     </div>
                     <div class="info-box">
                         <p>Tanggal Pengajuan</p>
-                        <!-- Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. -->
                         <h4><?= !empty($dataPeminjaman['tanggal_pinjam']) ? date('d M Y', strtotime($dataPeminjaman['tanggal_pinjam'])) : '-' ?></h4>
                     </div>
                 </div>
@@ -386,7 +367,6 @@ if (!$dataPeminjaman) {
                         <strong>Alasan Penolakan:</strong><br>
                         <?= htmlspecialchars($dataPeminjaman['alasan_penolakan'] ?? 'Tidak ada alasan yang dicantumkan.') ?>
                     </div>
-                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
             </div>
 
@@ -396,17 +376,14 @@ if (!$dataPeminjaman) {
                     <h3>Daftar Buku yang Dipinjam</h3>
                 </div>
 
-                <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika $dataPeminjaman['status'] === 'Dipinjam' -->
                 <?php if ($dataPeminjaman['status'] === 'Dipinjam'): ?>
                     <!-- FORM PROSES PENGEMBALIAN BUKU -->
                     <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_peminjaman.php?aksi=prosesKembali" method="POST">
-                        <!-- Input TERSEMBUNYI 'id_peminjaman': membawa data ke controller tanpa ditampilkan ($_POST['id_peminjaman']). -->
                         <input type="hidden" name="id_peminjaman" value="<?= htmlspecialchars($dataPeminjaman['id_peminjaman']) ?>">
 
                         <div class="table-responsive">
-                            <!-- TABEL data. -->
+                            <!-- Tabel data -->
                             <table class="data-table">
-                                <!-- Judul kolom tabel. -->
                                 <thead>
                                     <tr>
                                         <th style="width: 50px;">No</th>
@@ -418,21 +395,15 @@ if (!$dataPeminjaman) {
                                         <th style="width: 200px;">Denda Tambahan</th>
                                     </tr>
                                 </thead>
-                                <!-- Isi tabel: satu baris (<tr>) untuk setiap data. -->
                                 <tbody>
-                                    <!-- PERULANGAN: blok di bawah (sampai endforeach) diulang untuk setiap elemen $detailPeminjaman; elemen aktif ada di $no => $buku. -->
                                     <?php foreach ($detailPeminjaman as $no => $buku): ?>
                                         <tr>
                                             <td><?= $no + 1 ?></td>
                                             <td>
-                                                <?php /* KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($buku['cover']) */ ?>
                                                 <?php if (!empty($buku['cover'])): ?>
-                                                    <?php /* Gambar COVER buku: nama file dari database disambung ke folder ASSETS/COVER. */ ?>
                                                     <img src="/Aplikasi_Peminjaman_Buku/ASSETS/COVER/<?= htmlspecialchars($buku['cover']) ?>" class="cover-img" alt="Cover">
-                                                <?php /* ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. */ ?>
                                                 <?php else: ?>
                                                     <div class="no-cover">No Cover</div>
-                                                <?php /* Akhir kondisi if. */ ?>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
@@ -442,7 +413,6 @@ if (!$dataPeminjaman) {
                                             <td><?= htmlspecialchars($buku['jumlah_buku']) ?> Bks</td>
                                             <td><?= !empty($buku['tanggal_pengembalian']) ? date('d M Y', strtotime($buku['tanggal_pengembalian'])) : '-' ?></td>
                                             <td>
-                                                <?php /* Dropdown 'kondisi[{...}]': nilai opsi yang dipilih dikirim sebagai kunci 'kondisi[{...}]'. */ ?>
                                                 <select name="kondisi[<?= $buku['id_detail'] ?>]" class="form-control">
                                                     <option value="Normal">Normal</option>
                                                     <option value="Rusak">Rusak</option>
@@ -452,32 +422,27 @@ if (!$dataPeminjaman) {
                                             <td>
                                                 <div class="input-group">
                                                     <span class="input-group-text">Rp</span>
-                                                    <?php /* Kolom input 'denda_tambahan[{...}]' (type=number) -> dibaca controller sebagai $_POST['denda_tambahan[{...}]']. */ ?>
                                                     <input type="number" name="denda_tambahan[<?= $buku['id_detail'] ?>]" class="form-control" value="0" min="0" placeholder="0">
                                                 </div>
                                             </td>
                                         </tr>
-                                    <?php /* Akhir perulangan foreach. */ ?>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
                         </div>
 
                         <div style="margin-top: 20px; text-align: right;">
-                            <!-- Tombol SUBMIT: mengirim form. -->
                             <button type="submit" class="btn btn-primary" onclick="return confirm('Apakah Anda yakin ingin menyelesaikan pengembalian transaksi ini?');">
                                 Selesaikan & Pengembalian Buku
                             </button>
                         </div>
                     </form>
 
-                <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
                 <?php else: ?>
                     <!-- TABEL BUKU STANDAR (SITUASI DIAJUKAN, DIKEMBALIKAN, ATAU DITOLAK) -->
                     <div class="table-responsive">
-                        <!-- TABEL data. -->
+                        <!-- Tabel data -->
                         <table class="data-table">
-                            <!-- Judul kolom tabel. -->
                             <thead>
                                 <tr>
                                     <th style="width: 50px;">No</th>
@@ -488,21 +453,15 @@ if (!$dataPeminjaman) {
                                     <th style="width: 150px;">Status Item</th>
                                 </tr>
                             </thead>
-                            <!-- Isi tabel: satu baris (<tr>) untuk setiap data. -->
                             <tbody>
-                                <!-- PERULANGAN: blok di bawah (sampai endforeach) diulang untuk setiap elemen $detailPeminjaman; elemen aktif ada di $no => $buku. -->
                                 <?php foreach ($detailPeminjaman as $no => $buku): ?>
                                     <tr>
                                         <td><?= $no + 1 ?></td>
                                         <td>
-                                            <?php /* KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($buku['cover']) */ ?>
                                             <?php if (!empty($buku['cover'])): ?>
-                                                <?php /* Gambar COVER buku: nama file dari database disambung ke folder ASSETS/COVER. */ ?>
                                                 <img src="/Aplikasi_Peminjaman_Buku/ASSETS/COVER/<?= htmlspecialchars($buku['cover']) ?>" class="cover-img" alt="Cover">
-                                            <?php /* ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. */ ?>
                                             <?php else: ?>
                                                 <div class="no-cover">No Cover</div>
-                                            <?php /* Akhir kondisi if. */ ?>
                                             <?php endif; ?>
                                         </td>
                                         <td>
@@ -523,12 +482,10 @@ if (!$dataPeminjaman) {
                                             <span class="badge <?= $bdgDetail ?>"><?= htmlspecialchars($buku['status_detail']) ?></span>
                                         </td>
                                     </tr>
-                                <?php /* Akhir perulangan foreach. */ ?>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
-                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
             </div>
 
@@ -542,16 +499,13 @@ if (!$dataPeminjaman) {
                         <!-- Form Setujui -->
                         <div class="action-card">
                             <h4>Persetujuan Peminjaman</h4>
-                            <!-- FORM: saat disubmit, data dikirim dengan method POST ke /Aplikasi_Peminjaman_Buku/CONTROLLER/c_peminjaman.php?aksi=setujui. Atribut name pada setiap input menjadi kunci $_POST['...'] di controller. -->
+                            <!-- Form (POST) ke CONTROLLER/c_peminjaman.php?aksi=setujui -->
                             <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_peminjaman.php?aksi=setujui" method="POST">
-                                <!-- Input TERSEMBUNYI 'id_peminjaman': membawa data ke controller tanpa ditampilkan ($_POST['id_peminjaman']). -->
                                 <input type="hidden" name="id_peminjaman" value="<?= htmlspecialchars($dataPeminjaman['id_peminjaman']) ?>">
                                 <div class="form-group">
                                     <label>Target Tanggal Pengembalian</label>
-                                    <!-- Kolom input 'tanggal_pengembalian' (type=date) -> dibaca controller sebagai $_POST['tanggal_pengembalian']. -->
                                     <input type="date" name="tanggal_pengembalian" class="form-control" required>
                                 </div>
-                                <!-- Tombol SUBMIT: mengirim form. -->
                                 <button type="submit" class="btn btn-success" style="width: 100%;" onclick="return confirm('Setujui peminjaman ini?')">✔ Setujui Peminjaman</button>
                             </form>
                         </div>
@@ -559,22 +513,18 @@ if (!$dataPeminjaman) {
                         <!-- Form Tolak -->
                         <div class="action-card">
                             <h4>Penolakan Pengajuan</h4>
-                            <!-- FORM: saat disubmit, data dikirim dengan method POST ke /Aplikasi_Peminjaman_Buku/CONTROLLER/c_peminjaman.php?aksi=tolak. Atribut name pada setiap input menjadi kunci $_POST['...'] di controller. -->
+                            <!-- Form (POST) ke CONTROLLER/c_peminjaman.php?aksi=tolak -->
                             <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_peminjaman.php?aksi=tolak" method="POST">
-                                <!-- Input TERSEMBUNYI 'id_peminjaman': membawa data ke controller tanpa ditampilkan ($_POST['id_peminjaman']). -->
                                 <input type="hidden" name="id_peminjaman" value="<?= htmlspecialchars($dataPeminjaman['id_peminjaman']) ?>">
                                 <div class="form-group">
                                     <label>Alasan Penolakan</label>
-                                    <!-- Kolom teks panjang 'alasan_penolakan' -> dibaca controller sebagai $_POST['alasan_penolakan']. -->
                                     <textarea name="alasan_penolakan" class="form-control" rows="3" placeholder="Berikan alasan kenapa ditolak..." required></textarea>
                                 </div>
-                                <!-- Tombol SUBMIT: mengirim form. -->
                                 <button type="submit" class="btn btn-danger" style="width: 100%;" onclick="return confirm('Yakin ingin menolak pengajuan ini?')">✖ Tolak Pengajuan</button>
                             </form>
                         </div>
                     </div>
                 </div>
-            <!-- Akhir kondisi if. -->
             <?php endif; ?>
 
             <!-- CLEAN URL: Kembali ke Daftar Peminjaman -->

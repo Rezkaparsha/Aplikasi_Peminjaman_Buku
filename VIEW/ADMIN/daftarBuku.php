@@ -1,20 +1,13 @@
 <?php
-// =====================================================================
-// FILE   : VIEW/ADMIN/daftarBuku.php  (URL: /admin/daftarBuku, lewat c_buku.php)
-// FUNGSI : DAFTAR BUKU admin: tabel buku + pencarian & filter (judul, kategori, penulis, penerbit) + pagination + tombol tambah/edit/hapus.
-// DATA   : model Buku::cariDanFilterBuku(). Hapus buku -> konfirmasi JS -> CONTROLLER/c_buku.php?aksi=hapus&id_buku=..
-// =====================================================================
-// Mulai session hanya jika belum aktif (mencegah error session already started).
+// Halaman: Daftar buku (admin)
 if (session_status() === PHP_SESSION_NONE) {
-    // Mengaktifkan session (penyimpanan data login sementara di server).
+    // Mulai session
     session_start();
 }
 
 // 1. Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    // Jika yang login ternyata berrole 'siswa' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
-        // Alamat tujuan: halaman siswa terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
         header("Location: " . $kembali);
         exit;
@@ -28,58 +21,48 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
 // 3. Panggil Model Langsung di View
 require_once __DIR__ . "/../../MODEL/m_buku.php";
-// Memuat file model m_kategori.php (berisi class untuk query database).
+// Memuat model m_kategori
 require_once __DIR__ . "/../../MODEL/m_kategori.php";
-// Memuat file model m_penulis.php (berisi class untuk query database).
+// Memuat model m_penulis
 require_once __DIR__ . "/../../MODEL/m_penulis.php";
-// Memuat file model m_penerbit.php (berisi class untuk query database).
+// Memuat model m_penerbit
 require_once __DIR__ . "/../../MODEL/m_penerbit.php";
 
-// Buat objek dari class Buku; variabel $bukuModel dipakai untuk memanggil fungsi-fungsinya.
+// Membuat objek model
 $bukuModel = new Buku();
-// Buat objek dari class Kategori; variabel $kategoriModel dipakai untuk memanggil fungsi-fungsinya.
+// Membuat objek model
 $kategoriModel = new Kategori();
-// Buat objek dari class Penulis; variabel $penulisModel dipakai untuk memanggil fungsi-fungsinya.
+// Membuat objek model
 $penulisModel = new Penulis();
-// Buat objek dari class Penerbit; variabel $penerbitModel dipakai untuk memanggil fungsi-fungsinya.
+// Membuat objek model
 $penerbitModel = new Penerbit();
 
 // Ambil data untuk opsi dropdown filter
-// Data untuk opsi dropdown filter (kategori, penulis, penerbit).
 $daftarKategori = $kategoriModel->getAll();
 $daftarPenulis  = $penulisModel->getAll();
-// Panggil method getAll() milik objek $penerbitModel; hasilnya disimpan di $daftarPenerbit.
+// Mengambil data dari model
 $daftarPenerbit = $penerbitModel->getAll();
 
 // Tangkap nilai input GET jika ada
 $keyword     = trim($_GET['keyword'] ?? '');
-// Baca nilai dari URL ($_GET) atau form ($_POST); '?? nilai' = cadangan jika datanya tidak ada.
 $id_kategori = $_GET['id_kategori'] ?? '';
 $id_penulis  = $_GET['id_penulis'] ?? '';
-// Baca nilai dari URL ($_GET) atau form ($_POST); '?? nilai' = cadangan jika datanya tidak ada.
 $id_penerbit = $_GET['id_penerbit'] ?? '';
 
 // Eksekusi fungsi pencarian & filter
-// Jalankan pencarian + filter di model; semua parameter boleh kosong (berarti tidak difilter).
 $daftarBuku = $bukuModel->cariDanFilterBuku($keyword, $id_kategori, $id_penulis, $id_penerbit);
 
 // ==========================================
 // LOGIKA PAGINATION (10 Data per Halaman)
 // ==========================================
 $limit = 10;
-// Total seluruh data (count = jumlah elemen array).
 $total_data = count($daftarBuku);
-// Jumlah halaman = total data / limit, dibulatkan ke atas (ceil).
 $total_pages = ceil($total_data / $limit);
 
-// Nomor halaman aktif dari URL (?page=); default halaman 1.
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-// Jaga nomor halaman: tidak boleh kurang dari 1.
 if ($page < 1) $page = 1;
-// Jaga nomor halaman: tidak boleh melebihi halaman terakhir.
 if ($page > $total_pages && $total_pages > 0) $page = $total_pages;
 
-// Posisi data pertama pada halaman aktif (offset).
 $offset = ($page - 1) * $limit;
 
 // Potong array data sesuai halaman aktif
@@ -88,13 +71,9 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
 <!DOCTYPE html>
 <html lang="id">
 
-<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
-    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
-    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Judul yang tampil di tab browser. -->
     <title>Daftar Buku - Perpustakaan Online</title>
 
     <!-- Google Fonts: Inter -->
@@ -106,7 +85,7 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
+    <!-- CSS halaman -->
     <style>
         body { font-family: 'Inter', sans-serif; }
         /* Scrollbar Table */
@@ -117,7 +96,6 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
     </style>
 </head>
 
-<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body class="bg-slate-50 flex h-screen overflow-hidden antialiased text-slate-800">
 
     <!-- Panggil Sidebar -->
@@ -132,7 +110,6 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                 <p class="text-sm text-slate-500">Manajemen katalog buku perpustakaan</p>
             </div>
             <div class="hidden md:block">
-                <!-- Tautan navigasi ke halaman /admin/tambahBuku. -->
                 <a href="/Aplikasi_Peminjaman_Buku/admin/tambahBuku" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-lg shadow-blue-500/30 transition-all hover:-translate-y-0.5 flex items-center gap-2">
                     <i class="fas fa-plus"></i> Tambah Buku
                 </a>
@@ -146,56 +123,45 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                 
                 <!-- FILTER FORM -->
                 <div class="p-6 bg-slate-50/50 border-b border-slate-200">
-                    <!-- FORM PENCARIAN/FILTER: dikirim dengan method GET ke /Aplikasi_Peminjaman_Buku/admin/daftarBuku; nilainya muncul di URL dan dibaca controller/view lewat $_GET['...']. -->
+                    <!-- Form pencarian/filter -->
                     <form method="GET" action="/Aplikasi_Peminjaman_Buku/admin/daftarBuku" class="flex flex-col md:flex-row gap-4 items-center">
                         
                         <div class="relative flex-1 w-full">
                             <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                            <!-- Kolom input 'keyword' (type=text) -> dibaca controller sebagai $_GET['keyword']. -->
                             <input type="text" name="keyword" class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="Cari judul buku..." value="<?= htmlspecialchars($_GET['keyword'] ?? '') ?>">
                         </div>
 
-                        <!-- Dropdown 'id_kategori': nilai opsi yang dipilih dikirim sebagai kunci 'id_kategori'. -->
                         <select name="id_kategori" class="w-full md:w-auto px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                             <option value="">Semua Kategori</option>
                             <?php foreach ($daftarKategori as$kat): ?>
-                                <?php /* Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. */ ?>
                                 <option value="<?= $kat['id_kategori'] ?>" <?= (isset($_GET['id_kategori']) && $_GET['id_kategori'] ==$kat['id_kategori']) ? 'selected' : '' ?>>
-                                    <?php /* htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). */ ?>
                                     <?= htmlspecialchars($kat['nama_kategori']) ?>
                                 </option>
-                            <?php /* Akhir perulangan foreach. */ ?>
                             <?php endforeach; ?>
                         </select>
 
-                        <!-- Dropdown 'id_penulis': nilai opsi yang dipilih dikirim sebagai kunci 'id_penulis'. -->
                         <select name="id_penulis" class="w-full md:w-auto px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                             <option value="">Semua Penulis</option>
                             <?php foreach ($daftarPenulis as$pen): ?>
                                 <option value="<?= $pen['id_penulis'] ?>" <?= (isset($_GET['id_penulis']) && $_GET['id_penulis'] ==$pen['id_penulis']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($pen['nama_penulis']) ?>
                                 </option>
-                            <?php /* Akhir perulangan foreach. */ ?>
                             <?php endforeach; ?>
                         </select>
 
-                        <!-- Dropdown 'id_penerbit': nilai opsi yang dipilih dikirim sebagai kunci 'id_penerbit'. -->
                         <select name="id_penerbit" class="w-full md:w-auto px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                             <option value="">Semua Penerbit</option>
                             <?php foreach ($daftarPenerbit as$penb): ?>
                                 <option value="<?= $penb['id_penerbit'] ?>" <?= (isset($_GET['id_penerbit']) && $_GET['id_penerbit'] ==$penb['id_penerbit']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($penb['nama_penerbit']) ?>
                                 </option>
-                            <?php /* Akhir perulangan foreach. */ ?>
                             <?php endforeach; ?>
                         </select>
 
                         <div class="flex gap-2 w-full md:w-auto">
-                            <!-- Tombol SUBMIT: mengirim form. -->
                             <button type="submit" class="flex-1 md:flex-none px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold rounded-xl transition-all shadow-md">
                                 Filter
                             </button>
-                            <!-- Tautan navigasi ke halaman /admin/daftarBuku. -->
                             <a href="/Aplikasi_Peminjaman_Buku/admin/daftarBuku" class="flex-1 md:flex-none px-5 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-sm font-semibold rounded-xl transition-all text-center flex items-center justify-center gap-2">
                                 <i class="fas fa-undo"></i>
                             </a>
@@ -205,9 +171,8 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
 
                 <!-- TABLE -->
                 <div class="w-full overflow-x-auto table-scroll">
-                    <!-- TABEL data. -->
+                    <!-- Tabel data -->
                     <table class="w-full text-left border-collapse whitespace-nowrap">
-                        <!-- Judul kolom tabel. -->
                         <thead>
                             <tr class="bg-slate-100/50 text-slate-500 text-xs uppercase tracking-wider font-semibold border-b border-slate-200">
                                 <th class="py-4 px-6 text-center">No</th>
@@ -222,23 +187,17 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                                 <th class="py-4 px-6 text-center">Aksi</th>
                             </tr>
                         </thead>
-                        <!-- Isi tabel: satu baris (<tr>) untuk setiap data. -->
                         <tbody class="text-sm divide-y divide-slate-100">
-                            <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($bukuPaginated) -->
                             <?php if (!empty($bukuPaginated)): ?>
                                 <?php $no =$offset + 1; ?>
                                 <?php foreach ($bukuPaginated as$buku): ?>
                                     <tr class="hover:bg-slate-50/80 transition-colors group">
                                         <td class="py-3 px-6 text-center font-medium text-slate-500"><?= $no++ ?></td>
                                         <td class="py-3 px-6">
-                                            <?php /* KONDISI: blok di bawah (sampai else/endif) hanya tampil jika !empty($buku['cover']) */ ?>
                                             <?php if (!empty($buku['cover'])): ?>
-                                                <?php /* Gambar COVER buku: nama file dari database disambung ke folder ASSETS/COVER. */ ?>
                                                 <img src="/Aplikasi_Peminjaman_Buku/ASSETS/COVER/<?= htmlspecialchars($buku['cover']) ?>" class="w-12 h-16 object-cover rounded-md shadow-sm border border-slate-200 group-hover:shadow-md transition-shadow">
-                                            <?php /* ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. */ ?>
                                             <?php else: ?>
                                                 <div class="w-12 h-16 bg-slate-100 rounded-md border border-slate-200 flex items-center justify-center text-xs text-slate-400">No Cover</div>
-                                            <?php /* Akhir kondisi if. */ ?>
                                             <?php endif; ?>
                                         </td>
                                         <td class="py-3 px-6 font-semibold text-slate-800 whitespace-normal min-w-[200px]"><?= htmlspecialchars($buku['judul_buku']) ?></td>
@@ -258,20 +217,16 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                                         </td>
                                         <td class="py-3 px-6 text-center">
                                             <div class="flex justify-center gap-2">
-                                                <?php /* Tautan navigasi ke halaman /admin/editBuku. */ ?>
                                                 <a href="/Aplikasi_Peminjaman_Buku/admin/editBuku?id_buku=<?= $buku['id_buku'] ?>" class="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center hover:bg-sky-500 hover:text-white transition-colors" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <?php /* Tombol HAPUS: memanggil fungsi JavaScript konfirmasiHapus() (dialog 'Yakin?') sebelum data benar-benar dihapus. */ ?>
                                                 <button onclick="konfirmasiHapus(<?= $buku['id_buku'] ?>)" class="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" title="Hapus">
                                                     <i class="fas fa-trash-alt"></i>
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
-                                <?php /* Akhir perulangan foreach. */ ?>
                                 <?php endforeach; ?>
-                            <!-- ELSE: blok di bawah tampil jika kondisi di atasnya TIDAK terpenuhi. -->
                             <?php else: ?>
                                 <tr>
                                     <td colspan="10" class="py-12 text-center">
@@ -281,7 +236,6 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                                         </div>
                                     </td>
                                 </tr>
-                            <!-- Akhir kondisi if. -->
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -294,32 +248,24 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                             Menampilkan <span class="font-semibold text-slate-700"><?= count($bukuPaginated) ?></span> dari <span class="font-semibold text-slate-700"><?= $total_data ?></span> total buku
                         </p>
 
-                        <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika $total_pages > 1 -->
                         <?php if ($total_pages > 1): ?>
                             <div class="flex gap-1">
-                                <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika $page > 1 -->
                                 <?php if ($page > 1): ?>
                                     <a href="?page=<?= $page - 1 ?>" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-100 transition-colors">Prev</a>
-                                <!-- Akhir kondisi if. -->
                                 <?php endif; ?>
 
-                                <!-- PERULANGAN for ($i = 1; $i <= $total_pages; $i++): blok di bawah diulang sesuai kondisi ini (misalnya membuat tombol nomor halaman). -->
                                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                                     <a href="?page=<?= $i ?>" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors <?= ($i ===$page) ? 'bg-blue-600 text-white shadow-md' : 'border border-slate-300 text-slate-600 hover:bg-slate-100' ?>">
                                         <?= $i ?>
                                     </a>
                                 <?php endfor; ?>
 
-                                <!-- KONDISI: blok di bawah (sampai else/endif) hanya tampil jika $page <$total_pages -->
                                 <?php if ($page <$total_pages): ?>
                                     <a href="?page=<?= $page + 1 ?>" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-100 transition-colors">Next</a>
-                                <!-- Akhir kondisi if. -->
                                 <?php endif; ?>
                             </div>
-                        <!-- Akhir kondisi if. -->
                         <?php endif; ?>
                     </div>
-                <!-- Akhir kondisi if. -->
                 <?php endif; ?>
 
             </div>
@@ -337,9 +283,7 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
             timerProgressBar: true
         });
 
-        // PHP menyisipkan kode di bawah ke halaman HANYA jika ada pesan 'success' di session (flash message dari controller).
         <?php if (isset($_SESSION['success'])): ?>
-            // Tampilkan notifikasi toast.
             Toast.fire({
                 icon: 'success',
                 title: '<?= htmlspecialchars($_SESSION['success']); ?>'
@@ -347,9 +291,7 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
             <?php unset($_SESSION['success']); ?>
         <?php endif; ?>
 
-        // PHP menyisipkan kode di bawah ke halaman HANYA jika ada pesan 'error' di session (flash message dari controller).
         <?php if (isset($_SESSION['error'])): ?>
-            // Tampilkan notifikasi toast.
             Toast.fire({
                 icon: 'error',
                 title: '<?= htmlspecialchars($_SESSION['error']); ?>'
@@ -359,7 +301,6 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
 
         // Fungsi Konfirmasi Hapus Modern
         function konfirmasiHapus(id) {
-            // Tampilkan dialog SweetAlert2 (popup).
             Swal.fire({
                 title: 'Hapus Buku Ini?',
                 text: "Data buku beserta file cover akan dihapus secara permanen!",
@@ -376,9 +317,7 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                     cancelButton: 'rounded-lg'
                 }
             }).then((result) => {
-                // Jika pengguna menekan tombol konfirmasi (Ya)...
                 if (result.isConfirmed) {
-                    // Pindah halaman ke alamat ini (di sini memanggil controller).
                     window.location.href = "/Aplikasi_Peminjaman_Buku/CONTROLLER/c_buku.php?aksi=hapus&id_buku=" + id;
                 }
             });

@@ -1,20 +1,13 @@
 <?php
-// =====================================================================
-// FILE   : VIEW/ADMIN/dashboardAdmin.php  (URL: /admin/dashboardAdmin)
-// FUNGSI : DASHBOARD admin: kartu statistik (total buku, user, peminjaman, dan peminjaman yang belum kembali).
-// ALUR   : cek admin -> panggil model -> hitung statistik -> tampilkan HTML. Dibuka langsung oleh .htaccess (tanpa controller); view memanggil model sendiri.
-// =====================================================================
-// Mulai session hanya jika belum aktif (mencegah error session already started).
+// Halaman: Dashboard admin
 if (session_status() === PHP_SESSION_NONE) {
-    // Mengaktifkan session (penyimpanan data login sementara di server).
+    // Mulai session
     session_start();
 }
 
 // Proteksi Akses Admin Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'admin') {
-    // Jika yang login ternyata berrole 'siswa' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'siswa') {
-        // Alamat tujuan: halaman siswa terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_siswa'] ?? '/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa';
         header("Location: " . $kembali);
         exit;
@@ -28,43 +21,35 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
 // Panggil Model yang dibutuhkan
 require_once __DIR__ . "/../../MODEL/m_buku.php";
-// Memuat file model m_users.php (berisi class untuk query database).
+// Memuat model m_users
 require_once __DIR__ . "/../../MODEL/m_users.php";
-// Memuat file model m_peminjaman.php (berisi class untuk query database).
+// Memuat model m_peminjaman
 require_once __DIR__ . "/../../MODEL/m_peminjaman.php";
 
-// Buat objek dari class Buku; variabel $bukuModel dipakai untuk memanggil fungsi-fungsinya.
+// Membuat objek model
 $bukuModel = new Buku();
-// Buat objek dari class Users; variabel $userModel dipakai untuk memanggil fungsi-fungsinya.
+// Membuat objek model
 $userModel = new Users();
-// Buat objek dari class M_Peminjaman; variabel $peminjamanModel dipakai untuk memanggil fungsi-fungsinya.
+// Membuat objek model
 $peminjamanModel = new M_Peminjaman();
-// Jumlah peminjaman berstatus 'Dipinjam' (belum dikembalikan), dihitung di model.
+// Mengambil data dari model
 $totalBelumKembali = $peminjamanModel->getJumlahBelumKembali();
 
 // Ambil total data untuk ditampilkan di kartu statistik
-// Total buku: getAllBuku() mengembalikan array, count() menghitung jumlah elemennya (?? [] = array kosong bila null).
 $totalBuku = count($bukuModel->getAllBuku() ?? []);
-// Total user (admin + siswa).
 $totalUser = count($userModel->getAll() ?? []);
-// Total seluruh peminjaman.
 $totalPeminjaman = count($peminjamanModel->getSemuaPeminjaman() ?? []);
 
 // Jika ada session nama user, kita tampilkan. Jika tidak, pakai default Admin.
-// Nama admin untuk tampilan. CATATAN: session 'nama' tidak diisi saat login (login mengisi 'nama_lengkap'), sehingga di sini yang terpakai nilai cadangan 'Administrator'; sidebar memakai nama_lengkap.
 $namaAdmin = $_SESSION['nama'] ?? 'Administrator';
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
 
-<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
-    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
-    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Judul yang tampil di tab browser. -->
     <title>Dashboard Admin - Perpustakaan Online</title>
 
     <!-- Google Fonts: Inter -->
@@ -76,16 +61,15 @@ $namaAdmin = $_SESSION['nama'] ?? 'Administrator';
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
+    <!-- CSS halaman -->
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
 
-<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body class="bg-slate-50 flex h-screen overflow-hidden antialiased text-slate-800">
 
-    <!-- Menyisipkan file template (sidebar) ke posisi ini; isinya ikut dijalankan seperti kode di halaman. -->
+    <!-- Sidebar -->
     <?php include __DIR__ . "/../TEMPLATE/SideBarAdmin.php"; ?>
 
     <!-- MAIN CONTENT -->
@@ -99,7 +83,6 @@ $namaAdmin = $_SESSION['nama'] ?? 'Administrator';
             </div>
             <div class="hidden md:flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-full border border-slate-200">
                 <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                <!-- htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). -->
                 <span class="text-sm font-medium text-slate-600">Halo, <strong class="text-blue-600"><?= htmlspecialchars($namaAdmin) ?></strong></span>
             </div>
         </div>
@@ -113,7 +96,6 @@ $namaAdmin = $_SESSION['nama'] ?? 'Administrator';
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-b-4 border-b-blue-500 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-blue-500/10 group">
                     <div>
                         <h4 class="text-sm font-semibold text-slate-500 mb-1">Total Buku</h4>
-                        <!-- Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. -->
                         <h1 class="text-3xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors"><?= $totalBuku ?></h1>
                     </div>
                     <div class="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 text-2xl group-hover:scale-110 transition-transform">

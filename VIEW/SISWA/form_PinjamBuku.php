@@ -1,20 +1,13 @@
 <?php
-// =====================================================================
-// FILE   : VIEW/SISWA/form_PinjamBuku.php
-// FUNGSI : FORM KONFIRMASI peminjaman satu buku (dipilih lewat ?id_buku=..).
-// ALUR   : cek id buku & stok -> tampilkan form -> submit (POST) ke CONTROLLER/c_peminjaman.php?aksi=tambah.
-// =====================================================================
-// Mulai session hanya jika belum aktif (mencegah error session already started).
+// Halaman: Form pengajuan peminjaman
 if (session_status() === PHP_SESSION_NONE) {
-    // Mengaktifkan session (penyimpanan data login sementara di server).
+    // Mulai session
     session_start();
 }
 
 // Proteksi Akses Siswa Terpusat
 if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'siswa') {
-    // Jika yang login ternyata berrole 'admin' (nyasar ke halaman ini), kembalikan ke halamannya sendiri.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
-        // Alamat tujuan: halaman admin terakhir yang tersimpan di session; ?? = nilai cadangan (dashboard) jika belum ada.
         $kembali = $_SESSION['last_page_admin'] ?? '/Aplikasi_Peminjaman_Buku/admin/dashboardAdmin';
         header("Location: " . $kembali);
         exit;
@@ -26,12 +19,11 @@ if (!isset($_SESSION['id_user']) || $_SESSION['role'] !== 'siswa') {
 // Simpan URL lokasi controller aktif saat ini
 $_SESSION['last_page_siswa'] = $_SERVER['REQUEST_URI'];
 
-// Memuat file model m_buku.php (berisi class untuk query database).
+// Memuat model m_buku
 require_once __DIR__ . "/../../MODEL/m_buku.php";
 
-// Buat objek dari class Buku; variabel $bukuModel dipakai untuk memanggil fungsi-fungsinya.
+// Membuat objek model
 $bukuModel = new Buku();
-// Baca nilai dari URL ($_GET) atau form ($_POST); '?? nilai' = cadangan jika datanya tidak ada.
 $idBuku = (int)($_GET['id_buku'] ?? 0);
 
 if ($idBuku <= 0) {
@@ -39,7 +31,7 @@ if ($idBuku <= 0) {
     exit;
 }
 
-// Panggil method getBukuById() milik objek $bukuModel; hasilnya disimpan di $dataBuku.
+// Mengambil data dari model
 $dataBuku = $bukuModel->getBukuById($idBuku);
 
 if (!$dataBuku) {
@@ -58,16 +50,12 @@ if ((int)$dataBuku['stok'] <= 0) {
 <!DOCTYPE html>
 <html lang="id">
 
-<!-- BAGIAN HEAD: judul tab, pengaturan karakter, dan pemuat CSS/JS dari luar (tidak tampil di halaman). -->
 <head>
-    <!-- Set karakter UTF-8 agar huruf khusus tampil benar. -->
     <meta charset="UTF-8">
-    <!-- Viewport: tampilan menyesuaikan lebar layar HP/laptop (responsif). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Judul yang tampil di tab browser. -->
     <title>Pinjam Buku</title>
 
-    <!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
+    <!-- CSS halaman -->
     <style>
         * {
             box-sizing: border-box;
@@ -202,7 +190,6 @@ if ((int)$dataBuku['stok'] <= 0) {
 
 </head>
 
-<!-- BAGIAN BODY: seluruh isi yang tampil di layar. -->
 <body>
 
     <div class="container">
@@ -212,36 +199,29 @@ if ((int)$dataBuku['stok'] <= 0) {
         <div class="buku">
             <!-- CLEAN URL: Path Gambar Absolute -->
             <?php if (!empty($dataBuku['cover'])): ?>
-                <!-- Gambar COVER buku: nama file dari database disambung ke folder ASSETS/COVER. -->
                 <img src="/Aplikasi_Peminjaman_Buku/ASSETS/COVER/<?= htmlspecialchars($dataBuku['cover']) ?>" class="cover" alt="Cover Buku">
-            <!-- Akhir kondisi if. -->
             <?php endif; ?>
 
             <div class="info">
-                <!-- htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). -->
                 <h3><?= htmlspecialchars($dataBuku['judul_buku']) ?></h3>
                 <p>Tahun: <?= htmlspecialchars($dataBuku['tahun_terbit']) ?></p>
-                <!-- Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. -->
                 <p>Harga: Rp <?= number_format((int)$dataBuku['harga_buku'], 0, ',', '.') ?></p>
                 <p>Stok: <strong><?= htmlspecialchars($dataBuku['stok']) ?></strong></p>
             </div>
         </div>
 
-        <!-- FORM: saat disubmit, data dikirim dengan method POST ke /Aplikasi_Peminjaman_Buku/CONTROLLER/c_peminjaman.php?aksi=tambah. Atribut name pada setiap input menjadi kunci $_POST['...'] di controller. -->
+        <!-- Form (POST) ke CONTROLLER/c_peminjaman.php?aksi=tambah -->
         <form action="/Aplikasi_Peminjaman_Buku/CONTROLLER/c_peminjaman.php?aksi=tambah" method="POST">
-            <!-- Input TERSEMBUNYI 'id_buku[]': membawa data ke controller tanpa ditampilkan ($_POST['id_buku[]']). -->
             <input type="hidden" name="id_buku[]" value="<?= $dataBuku['id_buku'] ?>">
 
             <div class="form-group">
                 <label for="jumlah">Jumlah Buku</label>
-                <!-- Kolom input 'jumlah[]' (type=number) -> dibaca controller sebagai $_POST['jumlah[]']. -->
                 <input type="number" id="jumlah" name="jumlah[]" min="1" max="<?= $dataBuku['stok'] ?>" value="1" required>
             </div>
 
             <div class="buttons">
                 <!-- CLEAN URL: Tombol Batal Kembali ke Katalog Buku -->
                 <a href="/Aplikasi_Peminjaman_Buku/siswa/daftarBuku" class="btn btn-cancel">Batal</a>
-                <!-- Tombol SUBMIT: mengirim form. -->
                 <button type="submit" class="btn btn-submit">Ajukan Peminjaman</button>
             </div>
         </form>
