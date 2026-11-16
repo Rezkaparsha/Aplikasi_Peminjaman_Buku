@@ -1,33 +1,34 @@
 <?php
 
+// =====================================================================
+// FILE   : MODEL/m_kategori.php
+// FUNGSI : MODEL tabel `kategori`. Berisi query lihat, cari per id, tambah, ubah,
+//          hapus, dan pengecekan apakah kategori masih dipakai data lain.
+//          Semua query memakai prepared statement (aman dari SQL Injection).
+// =====================================================================
+// Memuat koneksi database.
 require_once __DIR__ . "/m_koneksi.php";
 
-/**
- * Model tabel kategori.
- */
+// Class Kategori. Properti public di bawah = penampung data satu kategori (nama sama dengan kolom tabel).
 class Kategori
 {
+    // Koneksi database (private).
     private $koneksi;
 
+    // Properti data; diisi controller sebelum memanggil insert()/update().
     public $id_kategori;
     public $nama_kategori;
     public $deskripsi;
     public $status;
 
-    /**
-     * Membuka koneksi database.
-     */
+    // Constructor: buka koneksi database.
     public function __construct()
     {
         $db = new Koneksi();
         $this->koneksi = $db->getKoneksi();
     }
 
-    /**
-     * Mengambil semua data kategori.
-     *
-     * @return array Daftar kategori
-     */
+    // getAll(): semua data kategori, diurutkan nama A-Z. Dipakai untuk halaman daftar dan pilihan dropdown di form buku.
     public function getAll()
     {
         $query = "SELECT id_kategori, nama_kategori, deskripsi, status
@@ -46,58 +47,7 @@ class Kategori
         return $data;
     }
 
-    /**
-     * Mencari kategori berdasarkan nama atau deskripsi.
-     *
-     * @param string $keyword Kata kunci pencarian
-     * @return array Daftar kategori yang sesuai
-     */
-    public function search($keyword)
-    {
-        $keyword = "%{$keyword}%";
-        $stmt = $this->koneksi->prepare("SELECT id_kategori, nama_kategori, deskripsi, status FROM kategori WHERE (nama_kategori LIKE ? OR deskripsi LIKE ?) ORDER BY nama_kategori ASC");
-        $stmt->bind_param("ss", $keyword, $keyword);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        $data = [];
-        while ($row = $result->fetch_assoc()) {
-            $data[] = $row;
-        }
-
-        return $data;
-    }
-
-    /**
-     * Mengambil nama kategori untuk daftar pilihan pada dropdown pencarian (jumlahnya dibatasi).
-     *
-     * @param string $keyword Kata kunci nama
-     * @param int $batas Jumlah data maksimum
-     * @return array Daftar nama kategori
-     */
-    public function cariNama($keyword, $batas = 10)
-    {
-        $keyword = "%{$keyword}%";
-        $batas = (int)$batas;
-        $stmt = $this->koneksi->prepare("SELECT nama_kategori FROM kategori WHERE nama_kategori LIKE ? ORDER BY nama_kategori ASC LIMIT ?");
-        $stmt->bind_param("si", $keyword, $batas);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        $data = [];
-        while ($row = $result->fetch_assoc()) {
-            $data[] = $row['nama_kategori'];
-        }
-
-        return $data;
-    }
-
-    /**
-     * Mengambil satu data kategori berdasarkan ID.
-     *
-     * @param int $id_kategori ID kategori
-     * @return array|null Data kategori, atau null jika tidak ada
-     */
+    // getById($id): satu data kategori untuk form edit. Hasil null/kosong jika id tidak ada.
     public function getById($id_kategori)
     {
         $stmt = $this->koneksi->prepare(
@@ -110,6 +60,7 @@ class Kategori
             return null;
         }
 
+        // Isi tanda tanya dengan id (i = integer).
         $stmt->bind_param("i", $id_kategori);
         $stmt->execute();
 
@@ -119,11 +70,7 @@ class Kategori
         return $data;
     }
 
-    /**
-     * Mengambil kategori yang berstatus aktif.
-     *
-     * @return array Daftar kategori aktif
-     */
+    // getAktif(): hanya kategori berstatus 'aktif' (tabel kategori punya kolom status aktif/nonaktif).
     public function getAktif()
     {
         $stmt = $this->koneksi->prepare(
@@ -151,12 +98,7 @@ class Kategori
     }
 
     // CEK APAKAH KATEGORI MASIH TERHUBUNG DENGAN BUKU
-    /**
-     * Memeriksa apakah kategori masih dipakai oleh buku.
-     *
-     * @param int $id_kategori ID kategori
-     * @return bool true jika masih dipakai
-     */
+    // isUsedInBuku($id): menghitung (COUNT) buku yang memakai kategori ini di tabel buku.
     public function isUsedInBuku($id_kategori)
     {
         $stmt = $this->koneksi->prepare("
@@ -175,14 +117,11 @@ class Kategori
         $result = $stmt->get_result()->fetch_assoc();
         $stmt->close();
 
+        // Kembalikan true jika jumlah > 0 (artinya masih dipakai), false jika tidak.
         return ($result['total'] > 0);
     }
 
-    /**
-     * Menyimpan kategori baru dari properti objek.
-     *
-     * @return bool
-     */
+    // insert(): menambah kategori baru dari nilai properti objek. Mengembalikan true/false.
     public function insert()
     {
         $stmt = $this->koneksi->prepare(
@@ -195,6 +134,7 @@ class Kategori
         }
 
         $stmt->bind_param(
+            // Tiga string: nama_kategori, deskripsi, status.
             "sss",
             $this->nama_kategori,
             $this->deskripsi,
@@ -207,11 +147,7 @@ class Kategori
         return $hasil;
     }
 
-    /**
-     * Mengubah data kategori dari properti objek.
-     *
-     * @return bool
-     */
+    // update(): mengubah data kategori berdasarkan id (klausa WHERE wajib agar hanya satu baris yang berubah).
     public function update()
     {
         $stmt = $this->koneksi->prepare(
@@ -225,6 +161,7 @@ class Kategori
         }
 
         $stmt->bind_param(
+            // Tiga string + satu integer (id_kategori) untuk WHERE.
             "sssi",
             $this->nama_kategori,
             $this->deskripsi,
@@ -239,14 +176,10 @@ class Kategori
     }
 
     // HAPUS KATEGORI (DENGAN EXCEPTION)
-    /**
-     * Menghapus kategori; gagal jika masih dipakai buku.
-     *
-     * @param int $id_kategori ID kategori
-     * @return bool
-     */
+    // delete($id): menghapus kategori. Double proteksi: cek isUsedInBuku() dulu, lalu try/catch menangkap error foreign key dari MySQL (return false, tidak membuat halaman error).
     public function delete($id_kategori)
     {
+        // Masih dipakai -> jangan hapus.
         if ($this->isUsedInBuku($id_kategori)) {
             return false;
         }
@@ -265,6 +198,7 @@ class Kategori
             $stmt->close();
 
             return $hasil;
+        // Error dari MySQL (mis. foreign key) -> kembalikan false.
         } catch (mysqli_sql_exception $e) {
             return false;
         }

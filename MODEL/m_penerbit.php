@@ -1,14 +1,21 @@
 <?php
 
+// =====================================================================
+// FILE   : MODEL/m_penerbit.php
+// FUNGSI : MODEL tabel `penerbit`. Berisi query lihat, cari per id, tambah, ubah,
+//          hapus, dan pengecekan apakah penerbit masih dipakai data lain.
+//          Semua query memakai prepared statement (aman dari SQL Injection).
+// =====================================================================
+// Memuat koneksi database.
 require_once __DIR__ . "/m_koneksi.php";
 
-/**
- * Model tabel penerbit.
- */
+// Class Penerbit. Properti public di bawah = penampung data satu penerbit (nama sama dengan kolom tabel).
 class Penerbit
 {
+    // Koneksi database (private).
     private $koneksi;
 
+    // Properti data; diisi controller sebelum memanggil insert()/update().
     public $id_penerbit;
     public $nama_penerbit;
     public $alamat;
@@ -16,9 +23,7 @@ class Penerbit
     public $telepon;
     public $email;
 
-    /**
-     * Membuka koneksi database.
-     */
+    // Constructor: buka koneksi database.
     public function __construct()
     {
         $db = new Koneksi();
@@ -26,11 +31,7 @@ class Penerbit
     }
 
     // AMBIL SEMUA PENERBIT
-    /**
-     * Mengambil semua data penerbit.
-     *
-     * @return array Daftar penerbit
-     */
+    // getAll(): semua data penerbit, diurutkan nama A-Z. Dipakai untuk halaman daftar dan pilihan dropdown di form buku.
     public function getAll()
     {
         $query = "
@@ -58,58 +59,7 @@ class Penerbit
     }
 
     // AMBIL PENERBIT BERDASARKAN ID
-    /**
-     * Mencari penerbit berdasarkan nama atau kota.
-     *
-     * @param string $keyword Kata kunci pencarian
-     * @return array Daftar penerbit yang sesuai
-     */
-    public function search($keyword)
-    {
-        $keyword = "%{$keyword}%";
-        $stmt = $this->koneksi->prepare("SELECT id_penerbit, nama_penerbit, alamat, kota, telepon, email FROM penerbit WHERE (nama_penerbit LIKE ? OR kota LIKE ?) ORDER BY nama_penerbit ASC");
-        $stmt->bind_param("ss", $keyword, $keyword);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        $data = [];
-        while ($row = $result->fetch_assoc()) {
-            $data[] = $row;
-        }
-
-        return $data;
-    }
-
-    /**
-     * Mengambil nama penerbit untuk daftar pilihan pada dropdown pencarian (jumlahnya dibatasi).
-     *
-     * @param string $keyword Kata kunci nama
-     * @param int $batas Jumlah data maksimum
-     * @return array Daftar nama penerbit
-     */
-    public function cariNama($keyword, $batas = 10)
-    {
-        $keyword = "%{$keyword}%";
-        $batas = (int)$batas;
-        $stmt = $this->koneksi->prepare("SELECT nama_penerbit FROM penerbit WHERE nama_penerbit LIKE ? ORDER BY nama_penerbit ASC LIMIT ?");
-        $stmt->bind_param("si", $keyword, $batas);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        $data = [];
-        while ($row = $result->fetch_assoc()) {
-            $data[] = $row['nama_penerbit'];
-        }
-
-        return $data;
-    }
-
-    /**
-     * Mengambil satu data penerbit berdasarkan ID.
-     *
-     * @param int $id_penerbit ID penerbit
-     * @return array|null Data penerbit, atau null jika tidak ada
-     */
+    // getById($id): satu data penerbit untuk form edit. Hasil null/kosong jika id tidak ada.
     public function getById($id_penerbit)
     {
         $stmt = $this->koneksi->prepare("
@@ -128,6 +78,7 @@ class Penerbit
             return null;
         }
 
+        // Isi tanda tanya dengan id (i = integer).
         $stmt->bind_param("i", $id_penerbit);
         $stmt->execute();
 
@@ -140,12 +91,7 @@ class Penerbit
     }
 
     // CEK APAKAH PENERBIT MASIH TERHUBUNG DENGAN BUKU
-    /**
-     * Memeriksa apakah penerbit masih dipakai oleh buku.
-     *
-     * @param int $id_penerbit ID penerbit
-     * @return bool true jika masih dipakai
-     */
+    // isUsedInBuku($id): menghitung (COUNT) buku yang memakai penerbit ini di tabel buku.
     public function isUsedInBuku($id_penerbit)
     {
         $stmt = $this->koneksi->prepare("
@@ -164,15 +110,12 @@ class Penerbit
         $result = $stmt->get_result()->fetch_assoc();
         $stmt->close();
 
+        // Kembalikan true jika jumlah > 0 (artinya masih dipakai), false jika tidak.
         return ($result['total'] > 0);
     }
 
     // TAMBAH PENERBIT
-    /**
-     * Menyimpan penerbit baru dari properti objek.
-     *
-     * @return bool
-     */
+    // insert(): menambah penerbit baru dari nilai properti objek. Mengembalikan true/false.
     public function insert()
     {
         $stmt = $this->koneksi->prepare("
@@ -192,6 +135,7 @@ class Penerbit
         }
 
         $stmt->bind_param(
+            // Lima string: nama, alamat, kota, telepon, email.
             "sssss",
             $this->nama_penerbit,
             $this->alamat,
@@ -203,7 +147,7 @@ class Penerbit
         $hasil = $stmt->execute();
 
         if ($hasil) {
-            // Ambil ID data yang baru disimpan
+            // Simpan id otomatis (AUTO_INCREMENT) hasil INSERT ke properti.
             $this->id_penerbit = $stmt->insert_id;
         }
 
@@ -213,11 +157,7 @@ class Penerbit
     }
 
     // UPDATE PENERBIT
-    /**
-     * Mengubah data penerbit dari properti objek.
-     *
-     * @return bool
-     */
+    // update(): mengubah data penerbit berdasarkan id (klausa WHERE wajib agar hanya satu baris yang berubah).
     public function update()
     {
         $stmt = $this->koneksi->prepare("
@@ -236,6 +176,7 @@ class Penerbit
         }
 
         $stmt->bind_param(
+            // Lima string + satu integer (id_penerbit) untuk WHERE.
             "sssssi",
             $this->nama_penerbit,
             $this->alamat,
@@ -253,14 +194,10 @@ class Penerbit
     }
 
     // HAPUS PENERBIT (DENGAN EXCEPTION)
-    /**
-     * Menghapus penerbit; gagal jika masih dipakai buku.
-     *
-     * @param int $id_penerbit ID penerbit
-     * @return bool
-     */
+    // delete($id): menghapus penerbit. Double proteksi: cek isUsedInBuku() dulu, lalu try/catch menangkap error foreign key dari MySQL (return false, tidak membuat halaman error).
     public function delete($id_penerbit)
     {
+        // Masih dipakai -> jangan hapus.
         if ($this->isUsedInBuku($id_penerbit)) {
             return false;
         }
@@ -280,6 +217,7 @@ class Penerbit
             $stmt->close();
 
             return $hasil;
+        // Error dari MySQL (mis. foreign key) -> kembalikan false.
         } catch (mysqli_sql_exception $e) {
             return false;
         }

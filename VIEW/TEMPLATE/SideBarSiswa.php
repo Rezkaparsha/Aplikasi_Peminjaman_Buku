@@ -1,7 +1,12 @@
 <?php
-// Template sidebar siswa
+// =====================================================================
+// FILE   : VIEW/TEMPLATE/SideBarSiswa.php
+// FUNGSI : TEMPLATE menu samping (sidebar) khusus SISWA.
+// Bukan halaman sendiri: di-include oleh view siswa. Berisi nama/NIS siswa dari session dan penanda menu aktif.
+// =====================================================================
+// Mulai session hanya jika belum aktif (mencegah error session already started).
 if (session_status() === PHP_SESSION_NONE) {
-    // Mulai session
+    // Mengaktifkan session (penyimpanan data login sementara di server).
     session_start();
 }
 
@@ -9,13 +14,14 @@ $namaSiswa = $_SESSION['nama_lengkap'] ?? $_SESSION['nama'] ?? 'Siswa Perpustaka
 $nisSiswa  = $_SESSION['nis_nip'] ?? $_SESSION['nis'] ?? '-';
 
 // Deteksi URL saat ini untuk highlight menu aktif (kompatibel dengan Clean URL)
+// Ambil bagian PATH dari alamat saat ini (tanpa ?query); dipakai untuk menandai menu aktif, cocok dengan clean URL.
 $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 ?>
 
 <!-- FontAwesome Icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<!-- CSS halaman -->
+<!-- CSS khusus halaman ini (warna, ukuran, tata letak); tidak dikomentari baris demi baris. -->
 <style>
     .sidebar-siswa {
         width: 280px;
@@ -224,6 +230,7 @@ $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
         <ul class="sidebar-menu">
             <li>
+                <!-- Tautan navigasi ke halaman /siswa/dashboardSiswa. -->
                 <a href="/Aplikasi_Peminjaman_Buku/siswa/dashboardSiswa"
                     class="<?= (strpos($currentUri, 'dashboardSiswa') !== false) ? 'active' : '' ?>">
                     <i class="fa-solid fa-house"></i>
@@ -231,6 +238,7 @@ $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
                 </a>
             </li>
             <li>
+                <!-- Tautan navigasi ke halaman /siswa/daftarBuku. -->
                 <a href="/Aplikasi_Peminjaman_Buku/siswa/daftarBuku"
                     class="<?= (strpos($currentUri, 'daftarBuku') !== false) ? 'active' : '' ?>">
                     <i class="fa-solid fa-book-open"></i>
@@ -238,6 +246,7 @@ $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
                 </a>
             </li>
             <li>
+                <!-- Tautan navigasi ke halaman /siswa/peminjaman. -->
                 <a href="/Aplikasi_Peminjaman_Buku/siswa/peminjaman"
                     class="<?= (strpos($currentUri, 'peminjaman') !== false) ? 'active' : '' ?>">
                     <i class="fa-solid fa-bookmark"></i>
@@ -245,6 +254,7 @@ $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
                 </a>
             </li>
             <li>
+                <!-- Tautan navigasi ke halaman /siswa/profil. -->
                 <a href="/Aplikasi_Peminjaman_Buku/siswa/profil"
                     class="<?= (strpos($currentUri, 'profil') !== false) ? 'active' : '' ?>">
                     <i class="fa-solid fa-user-gear"></i>
@@ -257,9 +267,11 @@ $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     <div class="sidebar-footer">
         <div class="user-profile-card">
             <div class="user-avatar">
+                <!-- Sintaks echo singkat PHP (tag buka PHP diikuti tanda sama dengan): mencetak nilai PHP langsung ke dalam HTML. -->
                 <?= strtoupper(substr($namaSiswa, 0, 1)) ?>
             </div>
             <div class="user-details">
+                <!-- htmlspecialchars() mengubah karakter khusus HTML (< > " ') menjadi aman ditampilkan; ini pencegah XSS (penyisipan script lewat data). -->
                 <div class="user-name" title="<?= htmlspecialchars($namaSiswa) ?>">
                     <?= htmlspecialchars($namaSiswa) ?>
                 </div>
@@ -269,6 +281,7 @@ $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
             </div>
         </div>
 
+        <!-- Tautan navigasi ke halaman /logout. -->
         <a href="/Aplikasi_Peminjaman_Buku/logout"
             class="btn-logout"
             onclick="return confirm('Apakah Anda yakin ingin keluar dari sistem?')">

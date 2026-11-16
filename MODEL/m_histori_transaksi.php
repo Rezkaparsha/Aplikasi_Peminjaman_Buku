@@ -1,14 +1,22 @@
 <?php
 
+// =====================================================================
+// FILE   : MODEL/m_histori_transaksi.php
+// FUNGSI : MODEL tabel `histori_transaksi` (arsip transaksi yang selesai).
+//          Tabel ini menyimpan SALINAN data (nama siswa, judul, harga, denda)
+//          sehingga histori tetap utuh walaupun data asli berubah.
+// CATATAN: yang memakai class ini hanya c_histori.php (getAll). Pengisian
+//          histori saat pengembalian dilakukan di M_Peminjaman::kembalikanBuku().
+// =====================================================================
 require_once 'm_koneksi.php';
 
-/**
- * Model tabel histori_transaksi.
- */
+// Class HistoriTransaksi.
 class HistoriTransaksi
 {
+    // Koneksi database.
     private $koneksi;
 
+    // Penampung data satu baris histori (kolom sama dengan tabel).
     public $id_histori;
     public $id_peminjaman;
     public $id_detail;
@@ -29,9 +37,7 @@ class HistoriTransaksi
 
     public $tanggal_selesai;
 
-    /**
-     * Membuka koneksi database.
-     */
+    // Constructor: buka koneksi.
     public function __construct()
     {
         $db = new Koneksi();
@@ -41,11 +47,7 @@ class HistoriTransaksi
 
     // MENAMPILKAN SEMUA HISTORI
 
-    /**
-     * Mengambil semua histori transaksi (terbaru di atas).
-     *
-     * @return array Daftar histori
-     */
+    // getAll(): semua histori, terbaru di atas (id_histori DESC).
     public function getAll()
     {
         $query = "
@@ -68,12 +70,7 @@ class HistoriTransaksi
 
     // MENCARI HISTORI BERDASARKAN ID
 
-    /**
-     * Mengambil satu histori berdasarkan ID.
-     *
-     * @param int $id_histori ID histori
-     * @return array|null Data histori, atau null jika tidak ada
-     */
+    // getById(): satu histori.
     public function getById($id_histori)
     {
         $stmt = $this->koneksi->prepare("
@@ -95,12 +92,7 @@ class HistoriTransaksi
 
     // HISTORI BERDASARKAN USER
 
-    /**
-     * Mengambil histori satu siswa berdasarkan NIS/NIP.
-     *
-     * @param string $nis_nip NIS/NIP
-     * @return array Daftar histori
-     */
+    // getByUser(): histori satu siswa berdasarkan NIS/NIP (string), terbaru dulu.
     public function getByUser($nis_nip)
     {
         $stmt = $this->koneksi->prepare("
@@ -131,12 +123,7 @@ class HistoriTransaksi
 
     // HISTORI BERDASARKAN PEMINJAMAN
 
-    /**
-     * Mengambil histori satu transaksi peminjaman.
-     *
-     * @param int $id_peminjaman ID peminjaman
-     * @return array Daftar histori
-     */
+    // getByPeminjaman(): histori satu transaksi peminjaman.
     public function getByPeminjaman($id_peminjaman)
     {
         $stmt = $this->koneksi->prepare("
@@ -167,11 +154,7 @@ class HistoriTransaksi
 
     // TAMBAH HISTORI
 
-    /**
-     * Menyimpan satu baris histori dari properti objek.
-     *
-     * @return bool
-     */
+    // insert(): menambah satu baris histori (13 kolom).
     public function insert()
     {
         $stmt = $this->koneksi->prepare("
@@ -196,6 +179,7 @@ class HistoriTransaksi
 
         // Format tipe data: iissisissssis (13 kolom)
         $stmt->bind_param(
+            // Urutan tipe sesuai 13 kolom: i i s s i s i s s s s i s.
             "iissisissssis",
             $this->id_peminjaman,
             $this->id_detail,
@@ -218,12 +202,7 @@ class HistoriTransaksi
 
     // MENGHAPUS HISTORI
 
-    /**
-     * Menghapus satu histori.
-     *
-     * @param int $id_histori ID histori
-     * @return bool
-     */
+    // delete(): menghapus satu histori.
     public function delete($id_histori)
     {
         $stmt = $this->koneksi->prepare("
@@ -242,14 +221,10 @@ class HistoriTransaksi
 
     // PENCARIAN HISTORI
 
-    /**
-     * Mencari histori berdasarkan NIS/NIP, nama siswa, atau judul buku.
-     *
-     * @param string $keyword Kata kunci pencarian
-     * @return array Daftar histori yang sesuai
-     */
+    // search(): cari histori berdasarkan NIS/NIP, nama siswa, atau judul buku (LIKE).
     public function search($keyword)
     {
+        // Bungkus % di kiri-kanan agar LIKE mencari 'mengandung kata'.
         $keyword = "%" . $keyword . "%";
 
         $stmt = $this->koneksi->prepare("
