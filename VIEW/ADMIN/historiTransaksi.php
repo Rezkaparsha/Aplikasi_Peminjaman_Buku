@@ -1,7 +1,6 @@
 <?php
 // Halaman: Histori transaksi
 if (session_status() === PHP_SESSION_NONE) {
-    // Mulai session
     session_start();
 }
 
@@ -21,13 +20,12 @@ $_SESSION['last_page_admin'] = $_SERVER['REQUEST_URI'];
 
 // 3. Panggil Model Langsung di View
 require_once __DIR__ . "/../../MODEL/m_peminjaman.php";
-// Membuat objek model
 $peminjamanModel = new M_Peminjaman();
-// Mengambil data dari model
 $dataHistori = $peminjamanModel->getHistoriTransaksi();
 
 // Inisialisasi variabel denda
 $totalSemuaDenda = 0;
+$namaPetugas = $_SESSION['nama_lengkap'] ?? 'Petugas Perpustakaan';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -37,7 +35,6 @@ $totalSemuaDenda = 0;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Histori Transaksi - Panel Admin</title>
 
-    <!-- CSS halaman -->
     <style>
         * {
             box-sizing: border-box;
@@ -46,7 +43,6 @@ $totalSemuaDenda = 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* 1. Kunci ukuran Layar Utama agar tidak bisa di-scroll ke mana pun */
         html,
         body {
             height: 100vh;
@@ -54,9 +50,6 @@ $totalSemuaDenda = 0;
             margin: 0;
             padding: 0;
             overflow: hidden;
-            /* Mencegah scrollbar utama muncul */
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f4f7f6;
         }
 
@@ -65,27 +58,21 @@ $totalSemuaDenda = 0;
             color: #333;
         }
 
-        /* 2. Main Content mengisi sisa area layar tanpa melebihi batas */
         .main-content {
             flex: 1;
             display: flex;
             flex-direction: column;
             height: 100vh;
             overflow: hidden;
-            /* Mengunci konten utama agar tidak keluar layar */
         }
 
-        /* 3. Container utama dibuat responsif dan hanya konten di dalamnya yang di-scroll jika panjang */
         .container {
             padding: 30px;
             flex: 1;
             overflow-y: auto;
-            /* Hanya scroll ke bawah jika isi tabel panjang */
             overflow-x: hidden;
-            /* Hilangkan scroll samping kanan-kiri */
         }
 
-        /* 4. Card Container */
         .card {
             background: #ffffff;
             padding: 25px;
@@ -94,19 +81,16 @@ $totalSemuaDenda = 0;
             width: 100%;
         }
 
-        /* 5. Mencegah Tabel Memaksa Layar Melebar ke Kanan */
         .table-responsive {
             width: 100%;
             overflow-x: auto;
-            /* Scroll horizontal hanya aktif di dalam area tabel saja jika terpaksa */
         }
 
         .data-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
-            min-width: 1000px;
-            /* UBAH min-width: 800px/900px menjadi 100% agar pas dengan card */
+            min-width: 1150px;
         }
 
         .topbar {
@@ -127,6 +111,11 @@ $totalSemuaDenda = 0;
             margin-bottom: 20px;
             border-bottom: 2px solid #ecf0f1;
             padding-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         .page-header h3 {
@@ -138,6 +127,44 @@ $totalSemuaDenda = 0;
             color: #7f8c8d;
             font-size: 13px;
             margin-top: 4px;
+        }
+
+        .btn-cetak-rekap {
+            background-color: #1e293b;
+            color: #ffffff;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-cetak-rekap:hover {
+            background-color: #0f172a;
+        }
+
+        .btn-bukti {
+            background-color: #2563eb;
+            color: #ffffff;
+            padding: 6px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+            transition: background-color 0.2s;
+        }
+
+        .btn-bukti:hover {
+            background-color: #1d4ed8;
         }
 
         .data-table th,
@@ -182,6 +209,23 @@ $totalSemuaDenda = 0;
         .badge-warning {
             background-color: #f39c12;
         }
+
+        .badge-orange {
+            background-color: #e67e22;
+        }
+
+        .total-denda-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fdfefe;
+            border: 1px solid #e5e8e8;
+            border-radius: 5px;
+            text-align: right;
+        }
+
+        .print-only {
+            display: none;
+        }
     </style>
 </head>
 
@@ -191,20 +235,34 @@ $totalSemuaDenda = 0;
     <?php include __DIR__ . "/../TEMPLATE/SideBarAdmin.php"; ?>
 
     <div class="main-content">
-        <div class="topbar">
-            <h2>Laporan & Histori Transaksi</h2>
+        <div class="topbar no-print">
+            <h2>Laporan &amp; Histori Transaksi</h2>
             <div style="font-size: 14px; color: #7f8c8d;">Panel Admin</div>
         </div>
 
         <div class="container">
             <div class="card">
-                <div class="page-header">
-                    <h3>Rekap Pengembalian Buku & Denda</h3>
-                    <p>Catatan fisik seluruh transaksi peminjaman buku yang telah selesai diproses.</p>
+
+                <!-- Kop Surat khusus saat Cetak Rekap Laporan -->
+                <div class="print-only kop-print">
+                    <h2>Perpustakaan SMK Sangkuriang 1 Cimahi</h2>
+                    <h3>Yayasan Dayang Sumbi Jaya Lestari</h3>
+                    <p>Laporan Rekapitulasi Pengembalian Buku &amp; Denda</p>
+                </div>
+
+                <div class="page-header no-print">
+                    <div>
+                        <h3>Rekap Pengembalian Buku &amp; Denda</h3>
+                        <p>Catatan fisik seluruh transaksi peminjaman buku yang telah selesai diproses.</p>
+                    </div>
+                    <?php if (!empty($dataHistori)): ?>
+                        <button type="button" onclick="window.print()" class="btn-cetak-rekap">
+                            🖨️ Cetak Rekap Laporan
+                        </button>
+                    <?php endif; ?>
                 </div>
 
                 <div class="table-responsive">
-                    <!-- Tabel data -->
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -215,15 +273,28 @@ $totalSemuaDenda = 0;
                                 <th>Buku</th>
                                 <th>Tgl Pinjam</th>
                                 <th>Tgl Kembali Real</th>
+                                <th>Kondisi Buku</th>
                                 <th>Keterangan Denda</th>
                                 <th>Nominal Denda</th>
+                                <th class="no-print" style="text-align: center;">Bukti Fisik</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (!empty($dataHistori)): ?>
                                 <?php $no = 1; ?>
                                 <?php foreach ($dataHistori as $row): ?>
-                                    <?php $totalSemuaDenda += (int)($row['denda'] ?? 0); ?>
+                                    <?php
+                                        $totalSemuaDenda += (int)($row['denda'] ?? 0);
+                                        $kondisi = $row['kondisi_buku'] ?? 'Normal';
+                                        $badgeKondisi = 'badge-success';
+                                        if ($kondisi === 'Rusak Ringan') {
+                                            $badgeKondisi = 'badge-warning';
+                                        } elseif ($kondisi === 'Rusak Sedang') {
+                                            $badgeKondisi = 'badge-orange';
+                                        } elseif ($kondisi === 'Rusak Berat' || $kondisi === 'Hilang') {
+                                            $badgeKondisi = 'badge-danger';
+                                        }
+                                    ?>
                                     <tr>
                                         <td><?= $no++ ?></td>
                                         <td style="font-weight: bold; color: #3498db;">#<?= htmlspecialchars($row['id_peminjaman'] ?? '-') ?></td>
@@ -231,11 +302,13 @@ $totalSemuaDenda = 0;
                                             <strong><?= htmlspecialchars($row['nama_siswa'] ?? '-') ?></strong><br>
                                             <span style="font-size: 11px; color: #7f8c8d;"><?= htmlspecialchars($row['nis_nip'] ?? '-') ?></span>
                                         </td>
-                                        <!-- Penanganan fallback jika kelas kosong / NULL -->
                                         <td><?= htmlspecialchars($row['kelas'] ?? '-') ?></td>
                                         <td><?= htmlspecialchars($row['judul_buku'] ?? '-') ?></td>
                                         <td><?= !empty($row['tanggal_pinjam']) ? date('d M Y', strtotime($row['tanggal_pinjam'])) : '-' ?></td>
                                         <td><?= !empty($row['tanggal_dikembalikan']) ? date('d M Y', strtotime($row['tanggal_dikembalikan'])) : '-' ?></td>
+                                        <td>
+                                            <span class="badge <?= $badgeKondisi ?>"><?= htmlspecialchars($kondisi) ?></span>
+                                        </td>
                                         <td>
                                             <?php if ((int)($row['denda'] ?? 0) > 0): ?>
                                                 <span class="badge badge-danger"><?= htmlspecialchars($row['jenis_denda'] ?? 'Denda') ?></span>
@@ -246,11 +319,16 @@ $totalSemuaDenda = 0;
                                         <td style="font-weight: bold; color: <?= (int)($row['denda'] ?? 0) > 0 ? '#e74c3c' : '#2ecc71' ?>;">
                                             Rp <?= number_format((int)($row['denda'] ?? 0), 0, ',', '.') ?>
                                         </td>
+                                        <td class="no-print" style="text-align: center;">
+                                            <a href="/Aplikasi_Peminjaman_Buku/VIEW/ADMIN/cetakBukti.php?id_peminjaman=<?= (int)$row['id_peminjaman'] ?>" target="_blank" class="btn-bukti">
+                                                🖨️ Cetak Bukti
+                                            </a>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="9" style="text-align: center; padding: 30px; color: #7f8c8d;">Belum ada histori transaksi pengembalian buku.</td>
+                                    <td colspan="11" style="text-align: center; padding: 30px; color: #7f8c8d;">Belum ada histori transaksi pengembalian buku.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -258,15 +336,163 @@ $totalSemuaDenda = 0;
                 </div>
 
                 <?php if (!empty($dataHistori)): ?>
-                    <div style="margin-top: 20px; padding: 15px; background: #fdfefe; border: 1px solid #e5e8e8; border-radius: 5px; text-align: right;">
+                    <div class="total-denda-box">
                         <span style="font-size: 14px; color: #7f8c8d;">Total Keseluruhan Denda Terkumpul:</span>
                         <h3 style="color: #c0392b; display: inline-block; margin-left: 10px;">Rp <?= number_format($totalSemuaDenda, 0, ',', '.') ?></h3>
+                    </div>
+
+                    <!-- Tanda tangan khusus saat Cetak Rekap Laporan -->
+                    <div class="print-only ttd-print">
+                        <p>Cimahi, <?= date('d M Y') ?></p>
+                        <p>Petugas Perpustakaan,</p>
+                        <div style="height: 60px;"></div>
+                        <p><strong>( <?= htmlspecialchars($namaPetugas) ?> )</strong></p>
+                        <p>Admin Perpustakaan</p>
                     </div>
                 <?php endif; ?>
 
             </div>
         </div>
     </div>
+
+    <!-- CSS Khusus Cetak diletakkan di bawah agar menimpa seluruh style dari SideBarAdmin.php -->
+    <style>
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 12mm;
+            }
+
+            html,
+            body {
+                display: block !important;
+                height: auto !important;
+                width: 100% !important;
+                overflow: visible !important;
+                background: #ffffff !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            /* Sembunyikan seluruh elemen di luar .main-content (Sidebar, dll) */
+            body > *:not(.main-content) {
+                display: none !important;
+            }
+
+            .topbar,
+            .no-print {
+                display: none !important;
+            }
+
+            .main-content,
+            .container,
+            .card,
+            .table-responsive {
+                display: block !important;
+                position: static !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+
+            .kop-print {
+                text-align: center;
+                border-bottom: 3px double #000000;
+                padding-bottom: 10px;
+                margin-bottom: 16px;
+                font-family: 'Times New Roman', Times, serif !important;
+                color: #000000 !important;
+            }
+
+            .kop-print h2 {
+                font-size: 16pt;
+                text-transform: uppercase;
+                margin-bottom: 2px;
+            }
+
+            .kop-print h3 {
+                font-size: 13pt;
+                text-transform: uppercase;
+                margin-bottom: 3px;
+            }
+
+            .kop-print p {
+                font-size: 11pt;
+            }
+
+            .data-table {
+                width: 100% !important;
+                min-width: 0 !important;
+                border-collapse: collapse !important;
+                margin-top: 8px !important;
+            }
+
+            .data-table thead {
+                display: table-header-group;
+            }
+
+            .data-table tr {
+                page-break-inside: avoid;
+            }
+
+            .data-table th,
+            .data-table td {
+                border: 1px solid #000000 !important;
+                padding: 6px 8px !important;
+                font-size: 9.5pt !important;
+                color: #000000 !important;
+                white-space: normal !important;
+            }
+
+            .data-table th {
+                background-color: #f1f5f9 !important;
+                text-align: center !important;
+                font-weight: bold !important;
+            }
+
+            .badge {
+                color: #000000 !important;
+                background: transparent !important;
+                padding: 0 !important;
+                font-weight: normal !important;
+                font-size: 9.5pt !important;
+            }
+
+            .total-denda-box {
+                margin-top: 12px !important;
+                padding: 8px 12px !important;
+                border: 1px solid #000000 !important;
+                background: #f8fafc !important;
+                color: #000000 !important;
+            }
+
+            .total-denda-box span,
+            .total-denda-box h3 {
+                color: #000000 !important;
+                font-size: 11pt !important;
+            }
+
+            .ttd-print {
+                margin-top: 24px;
+                float: right;
+                text-align: center;
+                font-family: 'Times New Roman', Times, serif !important;
+                font-size: 11pt;
+                color: #000000 !important;
+                page-break-inside: avoid;
+                padding-right: 20px;
+            }
+        }
+    </style>
 
 </body>
 

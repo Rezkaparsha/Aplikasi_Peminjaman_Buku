@@ -12,14 +12,14 @@ require_once __DIR__ . "/../MODEL/m_koneksi.php";
 require_once __DIR__ . "/../MODEL/m_peminjaman.php";
 
 /**
- * Controller transaksi peminjaman untuk siswa dan admin.
+- Controller transaksi peminjaman untuk siswa dan admin.
  */
 class C_Peminjaman
 {
     private $model;
 
     /**
-     * Membuat objek model peminjaman.
+- Membuat objek model peminjaman.
      */
     public function __construct()
     {
@@ -32,7 +32,7 @@ class C_Peminjaman
 
     // --- FITUR SISWA ---
     /**
-     * Menampilkan dashboard siswa.
+- Menampilkan dashboard siswa.
      */
     public function dashboard_siswa()
     {
@@ -48,7 +48,7 @@ class C_Peminjaman
     }
 
     /**
-     * Menampilkan katalog buku untuk siswa.
+- Menampilkan katalog buku untuk siswa.
      */
     public function katalog()
     {
@@ -63,7 +63,7 @@ class C_Peminjaman
     }
 
     /**
-     * Menampilkan daftar peminjaman milik siswa.
+- Menampilkan daftar peminjaman milik siswa.
      */
     public function peminjaman_siswa()
     {
@@ -78,7 +78,7 @@ class C_Peminjaman
     }
 
     /**
-     * Memproses pengajuan peminjaman oleh siswa.
+- Memproses pengajuan peminjaman oleh siswa.
      */
     public function tambah()
     {
@@ -124,7 +124,7 @@ class C_Peminjaman
     }
 
     /**
-     * Menampilkan detail peminjaman milik siswa.
+- Menampilkan detail peminjaman milik siswa.
      */
     public function detail()
     {
@@ -159,7 +159,7 @@ class C_Peminjaman
 
     // --- PROTEKSI ADMIN & FITUR ADMIN ---
     /**
-     * Memastikan pengguna adalah admin; selain itu dialihkan.
+- Memastikan pengguna adalah admin; selain itu dialihkan.
      */
     private function cekRoleAdmin()
     {
@@ -171,7 +171,7 @@ class C_Peminjaman
     }
 
     /**
-     * Menampilkan dashboard admin.
+- Menampilkan dashboard admin.
      */
     public function dashboard_admin()
     {
@@ -182,7 +182,7 @@ class C_Peminjaman
     }
 
     /**
-     * Menampilkan daftar semua peminjaman.
+- Menampilkan daftar semua peminjaman.
      */
     public function admin()
     {
@@ -194,7 +194,7 @@ class C_Peminjaman
     }
 
     /**
-     * Menampilkan detail peminjaman untuk admin.
+- Menampilkan detail peminjaman untuk admin.
      */
     public function detailAdmin()
     {
@@ -221,7 +221,7 @@ class C_Peminjaman
     }
 
     /**
-     * Menyetujui pengajuan dan menentukan batas pengembalian.
+- Menyetujui pengajuan dan menentukan batas pengembalian.
      */
     public function setujui()
     {
@@ -247,7 +247,7 @@ class C_Peminjaman
     }
 
     /**
-     * Menolak pengajuan beserta alasannya.
+- Menolak pengajuan beserta alasannya.
      */
     public function tolak()
     {
@@ -273,7 +273,7 @@ class C_Peminjaman
     }
 
     /**
-     * Memproses pengembalian buku (stok, denda, histori).
+- Memproses pengembalian buku (stok, denda keterlambatan & kondisi Rusak Ringan/Sedang/Berat/Hilang, serta histori).
      */
     public function prosesKembali()
     {
@@ -284,8 +284,16 @@ class C_Peminjaman
         }
 
         $id_peminjaman = isset($_POST['id_peminjaman']) ? (int)$_POST['id_peminjaman'] : 0;
-        $kondisi_buku = $_POST['kondisi'] ?? [];
-        $denda_tambahan = $_POST['denda_tambahan'] ?? [];
+
+        if ($id_peminjaman <= 0) {
+            $_SESSION['error'] = 'ID Peminjaman tidak valid.';
+            header("Location: /Aplikasi_Peminjaman_Buku/admin/daftarPeminjaman");
+            exit;
+        }
+
+        // Menangkap array kondisi ('Normal', 'Rusak Ringan', 'Rusak Sedang', 'Rusak Berat', 'Hilang') dan nominal denda per id_detail
+        $kondisi_buku = is_array($_POST['kondisi'] ?? null) ? $_POST['kondisi'] : [];
+        $denda_tambahan = is_array($_POST['denda_tambahan'] ?? null) ? $_POST['denda_tambahan'] : [];
 
         $hasil = $this->model->kembalikanBuku($id_peminjaman, $kondisi_buku, $denda_tambahan);
 
@@ -300,7 +308,7 @@ class C_Peminjaman
     }
 
     /**
-     * Menampilkan histori transaksi.
+- Menampilkan histori transaksi.
      */
     public function histori()
     {

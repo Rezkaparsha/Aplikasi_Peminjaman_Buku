@@ -48,9 +48,30 @@ $keyword     = trim($_GET['keyword'] ?? '');
 $id_kategori = $_GET['id_kategori'] ?? '';
 $id_penulis  = $_GET['id_penulis'] ?? '';
 $id_penerbit = $_GET['id_penerbit'] ?? '';
+$filter_laku = $_GET['filter_laku'] ?? '';
 
 // Eksekusi fungsi pencarian & filter
-$daftarBuku = $bukuModel->cariDanFilterBuku($keyword, $id_kategori, $id_penulis, $id_penerbit);
+if ($filter_laku === 'paling_laku') {
+    $daftarBuku = $bukuModel->getBukuPalingLaku();
+
+    // Tetap dukung kombinasi filter jika admin juga mengisi keyword/kategori/penerbit
+    if ($keyword !== '' || $id_kategori !== '' || $id_penerbit !== '') {
+        $daftarBuku = array_values(array_filter($daftarBuku, function ($item) use ($keyword, $id_kategori, $id_penerbit) {
+            if ($keyword !== '' && stripos($item['judul_buku'], $keyword) === false) {
+                return false;
+            }
+            if ($id_kategori !== '' && (int)$item['id_kategori'] !== (int)$id_kategori) {
+                return false;
+            }
+            if ($id_penerbit !== '' && (int)$item['id_penerbit'] !== (int)$id_penerbit) {
+                return false;
+            }
+            return true;
+        }));
+    }
+} else {
+    $daftarBuku = $bukuModel->cariDanFilterBuku($keyword, $id_kategori, $id_penulis, $id_penerbit);
+}
 
 // ==========================================
 // LOGIKA PAGINATION (10 Data per Halaman)
@@ -124,45 +145,53 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                 <!-- FILTER FORM -->
                 <div class="p-6 bg-slate-50/50 border-b border-slate-200">
                     <!-- Form pencarian/filter -->
-                    <form method="GET" action="/Aplikasi_Peminjaman_Buku/admin/daftarBuku" class="flex flex-col md:flex-row gap-4 items-center">
+                    <form method="GET" action="/Aplikasi_Peminjaman_Buku/admin/daftarBuku" class="flex flex-col lg:flex-row gap-3 items-center">
                         
                         <div class="relative flex-1 w-full">
                             <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
                             <input type="text" name="keyword" class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="Cari judul buku..." value="<?= htmlspecialchars($_GET['keyword'] ?? '') ?>">
                         </div>
 
-                        <select name="id_kategori" class="w-full md:w-auto px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                        <select name="id_kategori" class="w-full lg:w-auto px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                             <option value="">Semua Kategori</option>
-                            <?php foreach ($daftarKategori as$kat): ?>
-                                <option value="<?= $kat['id_kategori'] ?>" <?= (isset($_GET['id_kategori']) && $_GET['id_kategori'] ==$kat['id_kategori']) ? 'selected' : '' ?>>
+                            <?php foreach ($daftarKategori as $kat): ?>
+                                <option value="<?= $kat['id_kategori'] ?>" <?= (isset($_GET['id_kategori']) && $_GET['id_kategori'] == $kat['id_kategori']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($kat['nama_kategori']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
 
-                        <select name="id_penulis" class="w-full md:w-auto px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                        <select name="id_penulis" class="w-full lg:w-auto px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                             <option value="">Semua Penulis</option>
-                            <?php foreach ($daftarPenulis as$pen): ?>
-                                <option value="<?= $pen['id_penulis'] ?>" <?= (isset($_GET['id_penulis']) && $_GET['id_penulis'] ==$pen['id_penulis']) ? 'selected' : '' ?>>
+                            <?php foreach ($daftarPenulis as $pen): ?>
+                                <option value="<?= $pen['id_penulis'] ?>" <?= (isset($_GET['id_penulis']) && $_GET['id_penulis'] == $pen['id_penulis']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($pen['nama_penulis']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
 
-                        <select name="id_penerbit" class="w-full md:w-auto px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                        <select name="id_penerbit" class="w-full lg:w-auto px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                             <option value="">Semua Penerbit</option>
-                            <?php foreach ($daftarPenerbit as$penb): ?>
-                                <option value="<?= $penb['id_penerbit'] ?>" <?= (isset($_GET['id_penerbit']) && $_GET['id_penerbit'] ==$penb['id_penerbit']) ? 'selected' : '' ?>>
+                            <?php foreach ($daftarPenerbit as $penb): ?>
+                                <option value="<?= $penb['id_penerbit'] ?>" <?= (isset($_GET['id_penerbit']) && $_GET['id_penerbit'] == $penb['id_penerbit']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($penb['nama_penerbit']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
 
-                        <div class="flex gap-2 w-full md:w-auto">
-                            <button type="submit" class="flex-1 md:flex-none px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold rounded-xl transition-all shadow-md">
+                        <!-- Filter Buku Paling Laku -->
+                        <select name="filter_laku" class="w-full lg:w-auto px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            <option value="">Semua Buku (Default)</option>
+                            <option value="paling_laku" <?= ($filter_laku === 'paling_laku') ? 'selected' : '' ?>>
+                                Buku Paling Laku
+                            </option>
+                        </select>
+
+                        <div class="flex gap-2 w-full lg:w-auto">
+                            <button type="submit" class="flex-1 lg:flex-none px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold rounded-xl transition-all shadow-md">
                                 Filter
                             </button>
-                            <a href="/Aplikasi_Peminjaman_Buku/admin/daftarBuku" class="flex-1 md:flex-none px-5 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-sm font-semibold rounded-xl transition-all text-center flex items-center justify-center gap-2">
+                            <a href="/Aplikasi_Peminjaman_Buku/admin/daftarBuku" class="flex-1 lg:flex-none px-5 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-sm font-semibold rounded-xl transition-all text-center flex items-center justify-center gap-2" title="Reset Filter">
                                 <i class="fas fa-undo"></i>
                             </a>
                         </div>
@@ -184,13 +213,16 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                                 <th class="py-4 px-6">Kategori</th>
                                 <th class="py-4 px-6 text-right">Harga</th>
                                 <th class="py-4 px-6 text-center">Stok</th>
+                                <?php if ($filter_laku === 'paling_laku'): ?>
+                                    <th class="py-4 px-6 text-center">Total Dipinjam</th>
+                                <?php endif; ?>
                                 <th class="py-4 px-6 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="text-sm divide-y divide-slate-100">
                             <?php if (!empty($bukuPaginated)): ?>
-                                <?php $no =$offset + 1; ?>
-                                <?php foreach ($bukuPaginated as$buku): ?>
+                                <?php $no = $offset + 1; ?>
+                                <?php foreach ($bukuPaginated as $buku): ?>
                                     <tr class="hover:bg-slate-50/80 transition-colors group">
                                         <td class="py-3 px-6 text-center font-medium text-slate-500"><?= $no++ ?></td>
                                         <td class="py-3 px-6">
@@ -215,6 +247,13 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                                                 <?= htmlspecialchars($buku['stok']) ?>
                                             </span>
                                         </td>
+                                        <?php if ($filter_laku === 'paling_laku'): ?>
+                                            <td class="py-3 px-6 text-center">
+                                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                                    <?= (int)($buku['total_dipinjam'] ?? 0) ?>x Dipinjam
+                                                </span>
+                                            </td>
+                                        <?php endif; ?>
                                         <td class="py-3 px-6 text-center">
                                             <div class="flex justify-center gap-2">
                                                 <a href="/Aplikasi_Peminjaman_Buku/admin/editBuku?id_buku=<?= $buku['id_buku'] ?>" class="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center hover:bg-sky-500 hover:text-white transition-colors" title="Edit">
@@ -229,7 +268,7 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="10" class="py-12 text-center">
+                                    <td colspan="<?= ($filter_laku === 'paling_laku') ? '11' : '10' ?>" class="py-12 text-center">
                                         <div class="flex flex-col items-center justify-center text-slate-400">
                                             <i class="fas fa-box-open text-4xl mb-3"></i>
                                             <p class="text-sm font-medium">Data buku tidak ditemukan.</p>
@@ -251,17 +290,17 @@ $bukuPaginated = array_slice($daftarBuku, $offset, $limit);
                         <?php if ($total_pages > 1): ?>
                             <div class="flex gap-1">
                                 <?php if ($page > 1): ?>
-                                    <a href="?page=<?= $page - 1 ?>" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-100 transition-colors">Prev</a>
+                                    <a href="?<?= htmlspecialchars(http_build_query(array_merge($_GET, ['page' => $page - 1]))) ?>" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-100 transition-colors">Prev</a>
                                 <?php endif; ?>
 
                                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                                    <a href="?page=<?= $i ?>" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors <?= ($i ===$page) ? 'bg-blue-600 text-white shadow-md' : 'border border-slate-300 text-slate-600 hover:bg-slate-100' ?>">
+                                    <a href="?<?= htmlspecialchars(http_build_query(array_merge($_GET, ['page' => $i]))) ?>" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors <?= ($i === $page) ? 'bg-blue-600 text-white shadow-md' : 'border border-slate-300 text-slate-600 hover:bg-slate-100' ?>">
                                         <?= $i ?>
                                     </a>
                                 <?php endfor; ?>
 
-                                <?php if ($page <$total_pages): ?>
-                                    <a href="?page=<?= $page + 1 ?>" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-100 transition-colors">Next</a>
+                                <?php if ($page < $total_pages): ?>
+                                    <a href="?<?= htmlspecialchars(http_build_query(array_merge($_GET, ['page' => $page + 1]))) ?>" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-100 transition-colors">Next</a>
                                 <?php endif; ?>
                             </div>
                         <?php endif; ?>

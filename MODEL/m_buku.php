@@ -3,7 +3,7 @@
 require_once __DIR__ . "/m_koneksi.php";
 
 /**
- * Model tabel buku.
+- Model tabel buku.
  */
 class Buku
 {
@@ -19,7 +19,7 @@ class Buku
     public $cover;
 
     /**
-     * Membuka koneksi database.
+- Membuka koneksi database.
      */
     public function __construct()
     {
@@ -31,9 +31,9 @@ class Buku
     // GET SEMUA BUKU
 
     /**
-     * Mengambil semua buku beserta kategori, penerbit, dan penulis.
+- Mengambil semua buku beserta kategori, penerbit, dan penulis.
      *
-     * @return array Daftar buku
+- @return array Daftar buku
      */
     public function getAllBuku()
     {
@@ -106,10 +106,10 @@ class Buku
     // GET BUKU BERDASARKAN ID
 
     /**
-     * Mengambil satu buku berdasarkan ID.
+- Mengambil satu buku berdasarkan ID.
      *
-     * @param int $id_buku ID buku
-     * @return array|null Data buku, atau null jika tidak ada
+- @param int $id_buku ID buku
+- @return array|null Data buku, atau null jika tidak ada
      */
     public function getBukuById($id_buku)
     {
@@ -149,9 +149,9 @@ class Buku
     // TAMBAH BUKU
 
     /**
-     * Menyimpan buku baru dari properti objek.
+- Menyimpan buku baru dari properti objek.
      *
-     * @return bool
+- @return bool
      */
     public function insert()
     {
@@ -200,9 +200,9 @@ class Buku
     // UPDATE BUKU
 
     /**
-     * Mengubah data buku dari properti objek.
+- Mengubah data buku dari properti objek.
      *
-     * @return bool
+- @return bool
      */
     public function update()
     {
@@ -246,10 +246,10 @@ class Buku
     // HAPUS BUKU
 
     /**
-     * Menghapus buku; gagal jika buku sudah pernah dipinjam.
+- Menghapus buku; gagal jika buku sudah pernah dipinjam.
      *
-     * @param int $id_buku ID buku
-     * @return bool
+- @param int $id_buku ID buku
+- @return bool
      */
     public function delete($id_buku)
     {
@@ -274,13 +274,13 @@ class Buku
     }
 
     /**
-     * Mencari buku berdasarkan judul dengan filter kategori, penulis, dan penerbit.
+- Mencari buku berdasarkan judul dengan filter kategori, penulis, dan penerbit.
      *
-     * @param string $keyword Kata kunci pencarian
-     * @param int $id_kategori ID kategori
-     * @param int $id_penulis ID penulis
-     * @param int $id_penerbit ID penerbit
-     * @return array Daftar buku yang sesuai
+- @param string $keyword Kata kunci pencarian
+- @param int $id_kategori ID kategori
+- @param int $id_penulis ID penulis
+- @param int $id_penerbit ID penerbit
+- @return array Daftar buku yang sesuai
      */
     public function cariDanFilterBuku($keyword = '', $id_kategori = '', $id_penulis = '', $id_penerbit = '')
     {
@@ -354,6 +354,54 @@ class Buku
         }
 
         $stmt->close();
+        return $data;
+    }
+
+    /**
+- Mengambil daftar buku paling laku (paling sering dipinjam).
+     *
+- @return array Daftar buku terlaris beserta total peminjamannya
+     */
+    public function getBukuPalingLaku()
+    {
+        $sql = "
+            SELECT 
+                b.*, 
+                k.nama_kategori, 
+                p.nama_penerbit,
+                COALESCE(
+                    GROUP_CONCAT(DISTINCT pn.nama_penulis ORDER BY pn.nama_penulis ASC SEPARATOR ', '),
+                    '-'
+                ) AS daftar_penulis,
+                COALESCE(
+                    GROUP_CONCAT(DISTINCT pn.nama_penulis ORDER BY pn.nama_penulis ASC SEPARATOR ', '),
+                    '-'
+                ) AS penulis,
+                (
+                    SELECT COALESCE(SUM(dp.jumlah_buku), 0)
+                    FROM detail_peminjaman dp
+                    WHERE dp.id_buku = b.id_buku
+                      AND dp.status_detail IN ('Dipinjam', 'Dikembalikan')
+                ) AS total_dipinjam
+            FROM buku b
+            LEFT JOIN kategori k ON b.id_kategori = k.id_kategori
+            LEFT JOIN penerbit p ON b.id_penerbit = p.id_penerbit
+            LEFT JOIN buku_penulis bp ON b.id_buku = bp.id_buku
+            LEFT JOIN penulis pn ON bp.id_penulis = pn.id_penulis
+            GROUP BY b.id_buku
+            HAVING total_dipinjam > 0
+            ORDER BY total_dipinjam DESC, b.judul_buku ASC
+        ";
+
+        $result = $this->koneksi->query($sql);
+        $data = [];
+
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $data[] = $row;
+            }
+        }
+
         return $data;
     }
 }

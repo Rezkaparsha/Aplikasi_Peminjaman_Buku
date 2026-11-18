@@ -391,8 +391,8 @@ if (!$dataPeminjaman) {
                                         <th>Judul Buku</th>
                                         <th style="width: 90px;">Jumlah</th>
                                         <th style="width: 150px;">Target Pengembalian</th>
-                                        <th style="width: 180px;">Kondisi Buku</th>
-                                        <th style="width: 200px;">Denda Tambahan</th>
+                                        <th style="width: 210px;">Kondisi Buku</th>
+                                        <th style="width: 210px;">Denda Kondisi / Tambahan</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -413,17 +413,31 @@ if (!$dataPeminjaman) {
                                             <td><?= htmlspecialchars($buku['jumlah_buku']) ?> Bks</td>
                                             <td><?= !empty($buku['tanggal_pengembalian']) ? date('d M Y', strtotime($buku['tanggal_pengembalian'])) : '-' ?></td>
                                             <td>
-                                                <select name="kondisi[<?= $buku['id_detail'] ?>]" class="form-control">
-                                                    <option value="Normal">Normal</option>
-                                                    <option value="Rusak">Rusak</option>
-                                                    <option value="Hilang">Hilang</option>
+                                                <select name="kondisi[<?= $buku['id_detail'] ?>]"
+                                                        class="form-control"
+                                                        data-id="<?= $buku['id_detail'] ?>"
+                                                        data-harga="<?= (float)($buku['harga_buku'] ?? 0) ?>"
+                                                        data-jumlah="<?= (int)($buku['jumlah_buku'] ?? 1) ?>"
+                                                        onchange="hitungDendaKondisi(this)">
+                                                    <option value="Normal">Normal (0%)</option>
+                                                    <option value="Rusak Ringan">Rusak Ringan (20%)</option>
+                                                    <option value="Rusak Sedang">Rusak Sedang (50%)</option>
+                                                    <option value="Rusak Berat">Rusak Berat (100%)</option>
+                                                    <option value="Hilang">Hilang (100%)</option>
                                                 </select>
                                             </td>
                                             <td>
                                                 <div class="input-group">
                                                     <span class="input-group-text">Rp</span>
-                                                    <input type="number" name="denda_tambahan[<?= $buku['id_detail'] ?>]" class="form-control" value="0" min="0" placeholder="0">
+                                                    <input type="number"
+                                                           name="denda_tambahan[<?= $buku['id_detail'] ?>]"
+                                                           id="denda_tambahan_<?= $buku['id_detail'] ?>"
+                                                           class="form-control"
+                                                           value="0"
+                                                           min="0"
+                                                           placeholder="0">
                                                 </div>
+                                                <small id="info_denda_<?= $buku['id_detail'] ?>" style="color: #7f8c8d; font-size: 11px;"></small>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -532,6 +546,41 @@ if (!$dataPeminjaman) {
 
         </div>
     </div>
+
+    <!-- JAVASCRIPT HITUNG OTOMATIS DENDA KONDISI BUKU -->
+    <script>
+        function hitungDendaKondisi(selectEl) {
+            const idDetail = selectEl.getAttribute('data-id');
+            const hargaBuku = parseFloat(selectEl.getAttribute('data-harga')) || 0;
+            const jumlahBuku = parseInt(selectEl.getAttribute('data-jumlah')) || 1;
+            const kondisi = selectEl.value;
+
+            let persentase = 0;
+            if (kondisi === 'Rusak Ringan') {
+                persentase = 0.20;
+            } else if (kondisi === 'Rusak Sedang') {
+                persentase = 0.50;
+            } else if (kondisi === 'Rusak Berat' || kondisi === 'Hilang') {
+                persentase = 1.00;
+            }
+
+            const nominalDenda = Math.round(hargaBuku * persentase * jumlahBuku);
+            const inputDenda = document.getElementById('denda_tambahan_' + idDetail);
+            const infoDenda = document.getElementById('info_denda_' + idDetail);
+
+            if (inputDenda) {
+                inputDenda.value = nominalDenda;
+            }
+
+            if (infoDenda) {
+                if (persentase > 0) {
+                    infoDenda.textContent = (persentase * 100) + '% × Rp ' + hargaBuku.toLocaleString('id-ID') + (jumlahBuku > 1 ? ' × ' + jumlahBuku + ' bks' : '');
+                } else {
+                    infoDenda.textContent = '';
+                }
+            }
+        }
+    </script>
 
 </body>
 

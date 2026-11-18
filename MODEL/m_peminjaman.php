@@ -37,152 +37,81 @@ class M_Peminjaman
         $id_user = (int)$id_user;
 
         if ($id_user <= 0) {
-
             return [
                 'status' => false,
                 'pesan' => 'User tidak ditemukan.'
             ];
         }
 
-
         if (
             empty($daftarBuku) ||
             !is_array($daftarBuku)
         ) {
-
             return [
                 'status' => false,
                 'pesan' => 'Belum ada buku yang dipilih.'
             ];
         }
 
-
-        $this->koneksi
-            // Mulai transaksi database
-            ->begin_transaction();
-
+        $this->koneksi->begin_transaction();
 
         try {
-
             $bukuGabungan = [];
 
-
-            // -----------------------------------------
-            // GABUNGKAN BUKU YANG SAMA
-            // -----------------------------------------
-
             foreach ($daftarBuku as $buku) {
-
                 if (
                     !isset(
                         $buku['id_buku'],
                         $buku['jumlah']
                     )
                 ) {
-
-                    throw new Exception(
-                        'Data buku tidak lengkap.'
-                    );
+                    throw new Exception('Data buku tidak lengkap.');
                 }
 
-
-                $id_buku =
-                    (int)$buku['id_buku'];
-
-                $jumlah =
-                    (int)$buku['jumlah'];
-
+                $id_buku = (int)$buku['id_buku'];
+                $jumlah = (int)$buku['jumlah'];
 
                 if ($id_buku <= 0) {
-
-                    throw new Exception(
-                        'ID buku tidak valid.'
-                    );
+                    throw new Exception('ID buku tidak valid.');
                 }
-
 
                 if ($jumlah <= 0) {
-
-                    throw new Exception(
-                        'Jumlah buku minimal 1.'
-                    );
+                    throw new Exception('Jumlah buku minimal 1.');
                 }
 
-
-                if (
-                    isset(
-                        $bukuGabungan[$id_buku]
-                    )
-                ) {
-
-                    $bukuGabungan[$id_buku]
-                        += $jumlah;
+                if (isset($bukuGabungan[$id_buku])) {
+                    $bukuGabungan[$id_buku] += $jumlah;
                 } else {
-
-                    $bukuGabungan[$id_buku]
-                        = $jumlah;
+                    $bukuGabungan[$id_buku] = $jumlah;
                 }
             }
 
-
-            // -----------------------------------------
-            // CEK STOK
-            // -----------------------------------------
-
-            foreach (
-                $bukuGabungan
-                as $id_buku => $jumlah
-            ) {
-
-                $stmt =
-                    $this->koneksi->prepare("
-                        SELECT
-                            id_buku,
-                            judul_buku,
-                            stok
-                        FROM buku
-                        WHERE id_buku = ?
-                        FOR UPDATE
-                    ");
+            foreach ($bukuGabungan as $id_buku => $jumlah) {
+                $stmt = $this->koneksi->prepare("
+                    SELECT
+                        id_buku,
+                        judul_buku,
+                        stok
+                    FROM buku
+                    WHERE id_buku = ?
+                    FOR UPDATE
+                ");
 
                 if (!$stmt) {
-
-                    throw new Exception(
-                        'Gagal memeriksa buku.'
-                    );
+                    throw new Exception('Gagal memeriksa buku.');
                 }
 
-
-                $stmt->bind_param(
-                    "i",
-                    $id_buku
-                );
-
+                $stmt->bind_param("i", $id_buku);
                 $stmt->execute();
 
-
-                $dataBuku =
-                    $stmt
-                    ->get_result()
-                    ->fetch_assoc();
-
-
+                $dataBuku = $stmt->get_result()->fetch_assoc();
                 $stmt->close();
 
-
                 if (!$dataBuku) {
-
-                    throw new Exception(
-                        "Buku dengan ID {$id_buku} tidak ditemukan."
-                    );
+                    throw new Exception("Buku dengan ID {$id_buku} tidak ditemukan.");
                 }
 
-
-                if (
-                    (int)$dataBuku['stok']
-                    < $jumlah
-                ) {
-
+                if ((int)$dataBuku['stok'] < $jumlah) {
                     throw new Exception(
                         'Stok buku "'
                             . $dataBuku['judul_buku']
@@ -193,98 +122,52 @@ class M_Peminjaman
                 }
             }
 
+            $tanggal_pinjam = date('Y-m-d');
+            $status = 'Diajukan';
 
-            // -----------------------------------------
-            // BUAT PEMINJAMAN
-            // -----------------------------------------
-
-            $tanggal_pinjam =
-                date('Y-m-d');
-
-            $status =
-                'Diajukan';
-
-
-            $stmt =
-                $this->koneksi->prepare("
-                    INSERT INTO peminjaman
-                    (
-                        id_user,
-                        tanggal_pinjam,
-                        status
-                    )
-                    VALUES (?, ?, ?)
-                ");
-
+            $stmt = $this->koneksi->prepare("
+                INSERT INTO peminjaman
+                (
+                    id_user,
+                    tanggal_pinjam,
+                    status
+                )
+                VALUES (?, ?, ?)
+            ");
 
             if (!$stmt) {
-
-                throw new Exception(
-                    'Gagal menyiapkan peminjaman.'
-                );
+                throw new Exception('Gagal menyiapkan peminjaman.');
             }
 
-
-            $stmt->bind_param(
-                "iss",
-                $id_user,
-                $tanggal_pinjam,
-                $status
-            );
-
+            $stmt->bind_param("iss", $id_user, $tanggal_pinjam, $status);
 
             if (!$stmt->execute()) {
-
-                throw new Exception(
-                    'Gagal menyimpan peminjaman.'
-                );
+                throw new Exception('Gagal menyimpan peminjaman.');
             }
 
-
-            $id_peminjaman =
-                // Ambil ID data yang baru disimpan
-                $this->koneksi->insert_id;
-
-
+            $id_peminjaman = $this->koneksi->insert_id;
             $stmt->close();
 
+            $statusDetail = 'Diajukan';
 
-            // -----------------------------------------
-            // DETAIL PEMINJAMAN
-            // -----------------------------------------
-
-            $statusDetail =
-                'Diajukan';
-
-
-            $stmtDetail =
-                $this->koneksi->prepare("
-                    INSERT INTO detail_peminjaman
-                    (
-                        id_peminjaman,
-                        id_buku,
-                        jumlah_buku,
-                        tanggal_pengembalian,
-                        tanggal_dikembalikan,
-                        status
-                    )
-                    VALUES (?, ?, ?, NULL, NULL, ?)
-                ");
-
+            $stmtDetail = $this->koneksi->prepare("
+                INSERT INTO detail_peminjaman
+                (
+                    id_peminjaman,
+                    id_buku,
+                    jumlah_buku,
+                    tanggal_pengembalian,
+                    tanggal_dikembalikan,
+                    status
+                )
+                VALUES (?, ?, ?, NULL, NULL, ?)
+            ");
 
             if (!$stmtDetail) {
-
-                throw new Exception(
-                    'Gagal menyiapkan detail peminjaman.'
-                );
+                throw new Exception('Gagal menyiapkan detail peminjaman.');
             }
 
-
-            foreach (
-                $bukuGabungan
-                as $id_buku => $jumlah
-            ) {
-
+            foreach ($bukuGabungan as $id_buku => $jumlah) {
                 $stmtDetail->bind_param(
                     "iiis",
                     $id_peminjaman,
@@ -293,37 +176,21 @@ class M_Peminjaman
                     $statusDetail
                 );
 
-
                 if (!$stmtDetail->execute()) {
-
-                    throw new Exception(
-                        'Gagal menyimpan detail buku.'
-                    );
+                    throw new Exception('Gagal menyimpan detail buku.');
                 }
             }
 
-
             $stmtDetail->close();
-
-
-            $this->koneksi
-                // Simpan semua perubahan
-                ->commit();
-
+            $this->koneksi->commit();
 
             return [
                 'status' => true,
-                'pesan' =>
-                'Pengajuan peminjaman berhasil dibuat.',
-                'id_peminjaman' =>
-                $id_peminjaman
+                'pesan' => 'Pengajuan peminjaman berhasil dibuat.',
+                'id_peminjaman' => $id_peminjaman
             ];
         } catch (Exception $e) {
-
-            $this->koneksi
-                // Batalkan semua perubahan
-                ->rollback();
-
+            $this->koneksi->rollback();
 
             return [
                 'status' => false,
@@ -351,26 +218,12 @@ class M_Peminjaman
                 p.status,
                 u.nis_nip AS nis,
                 u.nama_lengkap,
-
-                COUNT(dp.id_detail)
-                    AS jumlah_jenis_buku,
-
-                COALESCE(
-                    SUM(dp.jumlah_buku),
-                    0
-                ) AS total_buku
-
+                COUNT(dp.id_detail) AS jumlah_jenis_buku,
+                COALESCE(SUM(dp.jumlah_buku), 0) AS total_buku
             FROM peminjaman p
-
-            INNER JOIN users u
-                ON p.id_user = u.id_user
-
-            LEFT JOIN detail_peminjaman dp
-                ON p.id_peminjaman =
-                   dp.id_peminjaman
-
+            INNER JOIN users u ON p.id_user = u.id_user
+            LEFT JOIN detail_peminjaman dp ON p.id_peminjaman = dp.id_peminjaman
             WHERE p.id_user = ?
-
             GROUP BY
                 p.id_peminjaman,
                 p.id_user,
@@ -378,53 +231,27 @@ class M_Peminjaman
                 p.status,
                 u.nis_nip,
                 u.nama_lengkap
-
-            ORDER BY
-                p.id_peminjaman DESC
+            ORDER BY p.id_peminjaman DESC
         ";
 
-
-        $stmt =
-            $this->koneksi
-            ->prepare($sql);
-
+        $stmt = $this->koneksi->prepare($sql);
 
         if (!$stmt) {
             return [];
         }
 
-
-        $id_user =
-            (int)$id_user;
-
-
-        $stmt->bind_param(
-            "i",
-            $id_user
-        );
-
+        $id_user = (int)$id_user;
+        $stmt->bind_param("i", $id_user);
         $stmt->execute();
 
-
-        $result =
-            $stmt->get_result();
-
-
+        $result = $stmt->get_result();
         $data = [];
 
-
-        while (
-            $row =
-            $result->fetch_assoc()
-        ) {
-
+        while ($row = $result->fetch_assoc()) {
             $data[] = $row;
         }
 
-
         $stmt->close();
-
-
         return $data;
     }
 
@@ -446,24 +273,11 @@ class M_Peminjaman
                 p.status,
                 u.nis_nip AS nis,
                 u.nama_lengkap,
-
-                COUNT(dp.id_detail)
-                    AS jumlah_jenis_buku,
-
-                COALESCE(
-                    SUM(dp.jumlah_buku),
-                    0
-                ) AS total_buku
-
+                COUNT(dp.id_detail) AS jumlah_jenis_buku,
+                COALESCE(SUM(dp.jumlah_buku), 0) AS total_buku
             FROM peminjaman p
-
-            INNER JOIN users u
-                ON p.id_user = u.id_user
-
-            LEFT JOIN detail_peminjaman dp
-                ON p.id_peminjaman =
-                   dp.id_peminjaman
-
+            INNER JOIN users u ON p.id_user = u.id_user
+            LEFT JOIN detail_peminjaman dp ON p.id_peminjaman = dp.id_peminjaman
             GROUP BY
                 p.id_peminjaman,
                 p.id_user,
@@ -471,33 +285,20 @@ class M_Peminjaman
                 p.status,
                 u.nis_nip,
                 u.nama_lengkap
-
-            ORDER BY
-                p.id_peminjaman DESC
+            ORDER BY p.id_peminjaman DESC
         ";
 
-
-        $result =
-            $this->koneksi
-            ->query($sql);
-
+        $result = $this->koneksi->query($sql);
 
         if (!$result) {
             return [];
         }
 
-
         $data = [];
 
-
-        while (
-            $row =
-            $result->fetch_assoc()
-        ) {
-
+        while ($row = $result->fetch_assoc()) {
             $data[] = $row;
         }
-
 
         return $data;
     }
@@ -511,93 +312,53 @@ class M_Peminjaman
      * @param int $id_peminjaman ID peminjaman
      * @return array Daftar detail peminjaman
      */
-    public function getDetailPeminjaman(
-        $id_peminjaman
-    ) {
-
+    public function getDetailPeminjaman($id_peminjaman)
+    {
         $sql = "
             SELECT
                 p.id_peminjaman,
                 p.id_user,
                 p.tanggal_pinjam,
                 p.status AS status_peminjaman,
-
                 u.nis_nip AS nis,
                 u.nama_lengkap,
-
                 dp.id_detail,
                 dp.id_buku,
                 dp.jumlah_buku,
                 dp.tanggal_pengembalian,
                 dp.tanggal_dikembalikan,
                 dp.status AS status_detail,
-
+                dp.kondisi_buku,
                 b.judul_buku,
                 b.harga_buku,
                 b.stok,
                 b.cover
-
             FROM peminjaman p
-
-            INNER JOIN users u
-                ON p.id_user = u.id_user
-
-            INNER JOIN detail_peminjaman dp
-                ON p.id_peminjaman =
-                   dp.id_peminjaman
-
-            INNER JOIN buku b
-                ON dp.id_buku =
-                   b.id_buku
-
+            INNER JOIN users u ON p.id_user = u.id_user
+            INNER JOIN detail_peminjaman dp ON p.id_peminjaman = dp.id_peminjaman
+            INNER JOIN buku b ON dp.id_buku = b.id_buku
             WHERE p.id_peminjaman = ?
-
-            ORDER BY
-                dp.id_detail ASC
+            ORDER BY dp.id_detail ASC
         ";
 
-
-        $stmt =
-            $this->koneksi
-            ->prepare($sql);
-
+        $stmt = $this->koneksi->prepare($sql);
 
         if (!$stmt) {
             return [];
         }
 
-
-        $id_peminjaman =
-            (int)$id_peminjaman;
-
-
-        $stmt->bind_param(
-            "i",
-            $id_peminjaman
-        );
-
+        $id_peminjaman = (int)$id_peminjaman;
+        $stmt->bind_param("i", $id_peminjaman);
         $stmt->execute();
 
-
-        $result =
-            $stmt->get_result();
-
-
+        $result = $stmt->get_result();
         $data = [];
 
-
-        while (
-            $row =
-            $result->fetch_assoc()
-        ) {
-
+        while ($row = $result->fetch_assoc()) {
             $data[] = $row;
         }
 
-
         $stmt->close();
-
-
         return $data;
     }
 
@@ -612,54 +373,30 @@ class M_Peminjaman
      */
     public function getPeminjamanById($id_peminjaman)
     {
-
-        $stmt =
-            $this->koneksi
-            ->prepare("
-                    SELECT
-                        p.id_peminjaman,
-                        p.id_user,
-                        p.tanggal_pinjam,
-                        p.status,
-                        p.alasan_penolakan,
-                        u.nis_nip AS nis,
-                        u.nama_lengkap
-
-                    FROM peminjaman p
-
-                    INNER JOIN users u
-                        ON p.id_user =
-                           u.id_user
-
-                    WHERE p.id_peminjaman = ?
-                ");
-
+        $stmt = $this->koneksi->prepare("
+            SELECT
+                p.id_peminjaman,
+                p.id_user,
+                p.tanggal_pinjam,
+                p.status,
+                p.alasan_penolakan,
+                u.nis_nip AS nis,
+                u.nama_lengkap
+            FROM peminjaman p
+            INNER JOIN users u ON p.id_user = u.id_user
+            WHERE p.id_peminjaman = ?
+        ");
 
         if (!$stmt) {
             return null;
         }
 
-
-        $id_peminjaman =
-            (int)$id_peminjaman;
-
-
-        $stmt->bind_param(
-            "i",
-            $id_peminjaman
-        );
-
+        $id_peminjaman = (int)$id_peminjaman;
+        $stmt->bind_param("i", $id_peminjaman);
         $stmt->execute();
 
-
-        $data =
-            $stmt
-            ->get_result()
-            ->fetch_assoc();
-
-
+        $data = $stmt->get_result()->fetch_assoc();
         $stmt->close();
-
 
         return $data ?: null;
     }
@@ -729,172 +466,79 @@ class M_Peminjaman
         $id_peminjaman,
         $tanggal_pengembalian
     ) {
-
-        if (
-            empty($tanggal_pengembalian)
-        ) {
-
+        if (empty($tanggal_pengembalian)) {
             return [
                 'status' => false,
-                'pesan' =>
-                'Tanggal pengembalian harus diisi.'
+                'pesan' => 'Tanggal pengembalian harus diisi.'
             ];
         }
 
-
-        $this->koneksi
-            // Mulai transaksi database
-            ->begin_transaction();
-
+        $this->koneksi->begin_transaction();
 
         try {
-
-            // -----------------------------------------
-            // CEK PEMINJAMAN
-            // -----------------------------------------
-
-            $stmt =
-                $this->koneksi->prepare("
-                    SELECT
-                        id_peminjaman,
-                        status
-
-                    FROM peminjaman
-
-                    WHERE id_peminjaman = ?
-
-                    FOR UPDATE
-                ");
-
+            $stmt = $this->koneksi->prepare("
+                SELECT
+                    id_peminjaman,
+                    status
+                FROM peminjaman
+                WHERE id_peminjaman = ?
+                FOR UPDATE
+            ");
 
             if (!$stmt) {
-
-                throw new Exception(
-                    'Gagal mengambil peminjaman.'
-                );
+                throw new Exception('Gagal mengambil peminjaman.');
             }
 
-
-            $id_peminjaman =
-                (int)$id_peminjaman;
-
-
-            $stmt->bind_param(
-                "i",
-                $id_peminjaman
-            );
-
+            $id_peminjaman = (int)$id_peminjaman;
+            $stmt->bind_param("i", $id_peminjaman);
             $stmt->execute();
 
-
-            $peminjaman =
-                $stmt
-                ->get_result()
-                ->fetch_assoc();
-
-
+            $peminjaman = $stmt->get_result()->fetch_assoc();
             $stmt->close();
 
-
             if (!$peminjaman) {
-
-                throw new Exception(
-                    'Peminjaman tidak ditemukan.'
-                );
+                throw new Exception('Peminjaman tidak ditemukan.');
             }
 
-
-            if (
-                $peminjaman['status']
-                !== 'Diajukan'
-            ) {
-
-                throw new Exception(
-                    'Peminjaman sudah diproses.'
-                );
+            if ($peminjaman['status'] !== 'Diajukan') {
+                throw new Exception('Peminjaman sudah diproses.');
             }
 
-
-            // -----------------------------------------
-            // AMBIL DETAIL
-            // -----------------------------------------
-
-            $stmt =
-                $this->koneksi->prepare("
-                    SELECT
-                        dp.id_detail,
-                        dp.id_buku,
-                        dp.jumlah_buku,
-                        b.judul_buku,
-                        b.stok
-
-                    FROM detail_peminjaman dp
-
-                    INNER JOIN buku b
-                        ON dp.id_buku =
-                           b.id_buku
-
-                    WHERE dp.id_peminjaman = ?
-
-                    FOR UPDATE
-                ");
-
+            $stmt = $this->koneksi->prepare("
+                SELECT
+                    dp.id_detail,
+                    dp.id_buku,
+                    dp.jumlah_buku,
+                    b.judul_buku,
+                    b.stok
+                FROM detail_peminjaman dp
+                INNER JOIN buku b ON dp.id_buku = b.id_buku
+                WHERE dp.id_peminjaman = ?
+                FOR UPDATE
+            ");
 
             if (!$stmt) {
-
-                throw new Exception(
-                    'Gagal mengambil detail.'
-                );
+                throw new Exception('Gagal mengambil detail.');
             }
 
-
-            $stmt->bind_param(
-                "i",
-                $id_peminjaman
-            );
-
+            $stmt->bind_param("i", $id_peminjaman);
             $stmt->execute();
 
-
-            $result =
-                $stmt->get_result();
-
-
+            $result = $stmt->get_result();
             $detail = [];
 
-
-            while (
-                $row =
-                $result->fetch_assoc()
-            ) {
-
+            while ($row = $result->fetch_assoc()) {
                 $detail[] = $row;
             }
 
-
             $stmt->close();
 
-
             if (empty($detail)) {
-
-                throw new Exception(
-                    'Detail buku tidak ditemukan.'
-                );
+                throw new Exception('Detail buku tidak ditemukan.');
             }
 
-
-            // -----------------------------------------
-            // CEK STOK
-            // -----------------------------------------
-
             foreach ($detail as $item) {
-
-                if (
-                    (int)$item['stok']
-                    <
-                    (int)$item['jumlah_buku']
-                ) {
-
+                if ((int)$item['stok'] < (int)$item['jumlah_buku']) {
                     throw new Exception(
                         'Stok buku "'
                             . $item['judul_buku']
@@ -903,169 +547,79 @@ class M_Peminjaman
                 }
             }
 
-
-            // -----------------------------------------
-            // KURANGI STOK
-            // -----------------------------------------
-
-            $stmtStok =
-                $this->koneksi->prepare("
-                    UPDATE buku
-
-                    SET stok =
-                        stok - ?
-
-                    WHERE id_buku = ?
-
-                    AND stok >= ?
-                ");
-
+            $stmtStok = $this->koneksi->prepare("
+                UPDATE buku
+                SET stok = stok - ?
+                WHERE id_buku = ?
+                AND stok >= ?
+            ");
 
             if (!$stmtStok) {
-
-                throw new Exception(
-                    'Gagal mengubah stok.'
-                );
+                throw new Exception('Gagal mengubah stok.');
             }
-
 
             foreach ($detail as $item) {
+                $jumlah = (int)$item['jumlah_buku'];
+                $id_buku = (int)$item['id_buku'];
 
-                $jumlah =
-                    (int)$item['jumlah_buku'];
-
-                $id_buku =
-                    (int)$item['id_buku'];
-
-
-                $stmtStok->bind_param(
-                    "iii",
-                    $jumlah,
-                    $id_buku,
-                    $jumlah
-                );
-
+                $stmtStok->bind_param("iii", $jumlah, $id_buku, $jumlah);
 
                 if (!$stmtStok->execute()) {
-
-                    throw new Exception(
-                        'Gagal mengurangi stok.'
-                    );
+                    throw new Exception('Gagal mengurangi stok.');
                 }
 
-
-                if (
-                    $stmtStok->affected_rows
-                    === 0
-                ) {
-
-                    throw new Exception(
-                        'Stok tidak mencukupi.'
-                    );
+                if ($stmtStok->affected_rows === 0) {
+                    throw new Exception('Stok tidak mencukupi.');
                 }
             }
-
 
             $stmtStok->close();
 
-
-            // -----------------------------------------
-            // UPDATE DETAIL
-            // -----------------------------------------
-
-            $stmt =
-                $this->koneksi->prepare("
-                    UPDATE detail_peminjaman
-
-                    SET
-                        tanggal_pengembalian = ?,
-                        status = 'Dipinjam'
-
-                    WHERE id_peminjaman = ?
-                ");
-
+            $stmt = $this->koneksi->prepare("
+                UPDATE detail_peminjaman
+                SET
+                    tanggal_pengembalian = ?,
+                    status = 'Dipinjam'
+                WHERE id_peminjaman = ?
+            ");
 
             if (!$stmt) {
-
-                throw new Exception(
-                    'Gagal memperbarui detail.'
-                );
+                throw new Exception('Gagal memperbarui detail.');
             }
 
-
-            $stmt->bind_param(
-                "si",
-                $tanggal_pengembalian,
-                $id_peminjaman
-            );
-
+            $stmt->bind_param("si", $tanggal_pengembalian, $id_peminjaman);
 
             if (!$stmt->execute()) {
-
-                throw new Exception(
-                    'Gagal memperbarui detail.'
-                );
+                throw new Exception('Gagal memperbarui detail.');
             }
-
 
             $stmt->close();
 
-
-            // -----------------------------------------
-            // UPDATE PEMINJAMAN
-            // -----------------------------------------
-
-            $stmt =
-                $this->koneksi->prepare("
-                    UPDATE peminjaman
-
-                    SET status = 'Dipinjam'
-
-                    WHERE id_peminjaman = ?
-                ");
-
+            $stmt = $this->koneksi->prepare("
+                UPDATE peminjaman
+                SET status = 'Dipinjam'
+                WHERE id_peminjaman = ?
+            ");
 
             if (!$stmt) {
-
-                throw new Exception(
-                    'Gagal memperbarui status.'
-                );
+                throw new Exception('Gagal memperbarui status.');
             }
 
-
-            $stmt->bind_param(
-                "i",
-                $id_peminjaman
-            );
-
+            $stmt->bind_param("i", $id_peminjaman);
 
             if (!$stmt->execute()) {
-
-                throw new Exception(
-                    'Gagal memperbarui status peminjaman.'
-                );
+                throw new Exception('Gagal memperbarui status peminjaman.');
             }
 
-
             $stmt->close();
-
-
-            $this->koneksi
-                // Simpan semua perubahan
-                ->commit();
-
+            $this->koneksi->commit();
 
             return [
                 'status' => true,
-                'pesan' =>
-                'Peminjaman berhasil disetujui.'
+                'pesan' => 'Peminjaman berhasil disetujui.'
             ];
         } catch (Exception $e) {
-
-            $this->koneksi
-                // Batalkan semua perubahan
-                ->rollback();
-
+            $this->koneksi->rollback();
 
             return [
                 'status' => false,
@@ -1088,50 +642,25 @@ class M_Peminjaman
         $id_peminjaman,
         $id_user
     ) {
-
-        $stmt =
-            $this->koneksi->prepare("
-                SELECT
-                    id_peminjaman
-
-                FROM peminjaman
-
-                WHERE id_peminjaman = ?
-
-                AND id_user = ?
-            ");
-
+        $stmt = $this->koneksi->prepare("
+            SELECT id_peminjaman
+            FROM peminjaman
+            WHERE id_peminjaman = ?
+            AND id_user = ?
+        ");
 
         if (!$stmt) {
             return false;
         }
 
+        $id_peminjaman = (int)$id_peminjaman;
+        $id_user = (int)$id_user;
 
-        $id_peminjaman =
-            (int)$id_peminjaman;
-
-        $id_user =
-            (int)$id_user;
-
-
-        $stmt->bind_param(
-            "ii",
-            $id_peminjaman,
-            $id_user
-        );
-
-
+        $stmt->bind_param("ii", $id_peminjaman, $id_user);
         $stmt->execute();
 
-
-        $ada =
-            $stmt
-            ->get_result()
-            ->num_rows > 0;
-
-
+        $ada = $stmt->get_result()->num_rows > 0;
         $stmt->close();
-
 
         return $ada;
     }
@@ -1140,11 +669,11 @@ class M_Peminjaman
     // 9. PROSES PENGEMBALIAN BUKU & PERHITUNGAN DENDA (PER BUKU)
 
     /**
-     * Memproses pengembalian: stok, denda keterlambatan dan tambahan, histori, dan status.
+     * Memproses pengembalian: stok, denda keterlambatan dan kondisi buku, histori, dan status.
      *
      * @param int $id_peminjaman ID peminjaman
-     * @param array $kondisi_buku Kondisi tiap buku (Normal/Rusak/Hilang), kunci id_detail
-     * @param array $denda_tambahan Denda tambahan per buku, kunci id_detail
+     * @param array $kondisi_buku Kondisi tiap buku (Normal/Rusak Ringan/Rusak Sedang/Rusak Berat/Hilang), kunci id_detail
+     * @param array $denda_tambahan Denda tambahan/kondisi per buku, kunci id_detail
      * @return array Hasil proses (status, pesan)
      */
     public function kembalikanBuku($id_peminjaman, $kondisi_buku = [], $denda_tambahan = [])
@@ -1162,6 +691,9 @@ class M_Peminjaman
                 JOIN users u ON p.id_user = u.id_user
                 WHERE p.id_peminjaman = ? FOR UPDATE
             ");
+            if (!$stmtPmj) {
+                throw new Exception("Gagal menyiapkan query peminjaman: " . $this->koneksi->error);
+            }
             $stmtPmj->bind_param("i", $id_peminjaman);
             $stmtPmj->execute();
             $dataPmj = $stmtPmj->get_result()->fetch_assoc();
@@ -1177,6 +709,9 @@ class M_Peminjaman
                 JOIN buku b ON dp.id_buku = b.id_buku
                 WHERE dp.id_peminjaman = ? FOR UPDATE
             ");
+            if (!$stmtDetail) {
+                throw new Exception("Gagal menyiapkan query detail: " . $this->koneksi->error);
+            }
             $stmtDetail->bind_param("i", $id_peminjaman);
             $stmtDetail->execute();
             $resultDetail = $stmtDetail->get_result();
@@ -1187,15 +722,27 @@ class M_Peminjaman
             }
             $stmtDetail->close();
 
-            if (empty($details)) throw new Exception("Detail peminjaman tidak ditemukan.");
+            if (empty($details)) {
+                throw new Exception("Detail peminjaman tidak ditemukan.");
+            }
+
+            // Cek apakah kolom kondisi_buku tersedia di tabel detail_peminjaman
+            $cekKolomKondisi = $this->koneksi->query("SHOW COLUMNS FROM detail_peminjaman LIKE 'kondisi_buku'");
+            $punyaKolomKondisi = ($cekKolomKondisi && $cekKolomKondisi->num_rows > 0);
 
             $stmtStok = $this->koneksi->prepare("UPDATE buku SET stok = stok + ? WHERE id_buku = ?");
+            if (!$stmtStok) {
+                throw new Exception("Gagal menyiapkan query stok: " . $this->koneksi->error);
+            }
 
             $stmtHistori = $this->koneksi->prepare("
                 INSERT INTO histori_transaksi 
                 (id_peminjaman, id_detail, nis_nip, nama_siswa, id_buku, judul_buku, harga_buku, tanggal_pinjam, tanggal_pengembalian, tanggal_dikembalikan, jenis_denda, denda, tanggal_selesai)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
+            if (!$stmtHistori) {
+                throw new Exception("Gagal menyiapkan query histori: " . $this->koneksi->error);
+            }
 
             // Tarif denda per hari keterlambatan
             $tarif_denda_per_hari = 1000;
@@ -1207,10 +754,27 @@ class M_Peminjaman
                 $kondisi_item = $kondisi_buku[$id_detail] ?? 'Normal';
                 $denda_nominal_item = (int)($denda_tambahan[$id_detail] ?? 0);
 
-                // Jika buku HILANG, stok TIDAK dikembalikan. Jika Normal/Rusak, stok dikembalikan.
-                if ($kondisi_item !== 'Hilang') {
+                // Simpan kondisi buku ke detail_peminjaman jika kolom kondisi_buku tersedia
+                if ($punyaKolomKondisi) {
+                    $stmtKondisi = $this->koneksi->prepare("UPDATE detail_peminjaman SET kondisi_buku = ? WHERE id_detail = ?");
+                    if (!$stmtKondisi) {
+                        throw new Exception("Gagal menyiapkan update kondisi buku: " . $this->koneksi->error);
+                    }
+                    $stmtKondisi->bind_param("si", $kondisi_item, $id_detail);
+                    if (!$stmtKondisi->execute()) {
+                        $err = $stmtKondisi->error;
+                        $stmtKondisi->close();
+                        throw new Exception("Gagal menyimpan kondisi buku: " . $err);
+                    }
+                    $stmtKondisi->close();
+                }
+
+                // Stok hanya bertambah kembali jika kondisi Normal, Rusak Ringan, atau Rusak Sedang
+                if (in_array($kondisi_item, ['Normal', 'Rusak Ringan', 'Rusak Sedang'])) {
                     $stmtStok->bind_param("ii", $item['jumlah_buku'], $item['id_buku']);
-                    $stmtStok->execute();
+                    if (!$stmtStok->execute()) {
+                        throw new Exception("Gagal memperbarui stok buku: " . $stmtStok->error);
+                    }
                 }
 
                 // Hitung Denda Keterlambatan
@@ -1222,19 +786,42 @@ class M_Peminjaman
                 $keterangan_denda = "Tidak Ada";
 
                 if ($tgl_dikembalikan_real > $tgl_kembali_seharusnya) {
-                    // Hitung selisih hari keterlambatan
                     $selisih_hari = $tgl_dikembalikan_real->diff($tgl_kembali_seharusnya)->days;
                     $total_denda = $selisih_hari * $tarif_denda_per_hari;
                     $keterangan_denda = "Terlambat " . $selisih_hari . " Hari";
                 }
 
-                // Jika ada denda tambahan untuk buku ini (karena rusak/hilang)
-                if ($kondisi_item !== 'Normal' && $denda_nominal_item > 0) {
-                    $total_denda += $denda_nominal_item;
+                // Hitung persentase denda kondisi buku berdasarkan harga_buku
+                $harga_buku = (float)$item['harga_buku'];
+                $jumlah_buku = (int)$item['jumlah_buku'];
+                $persentase = 0;
+
+                if ($kondisi_item === 'Rusak Ringan') {
+                    $persentase = 0.20;
+                } elseif ($kondisi_item === 'Rusak Sedang') {
+                    $persentase = 0.50;
+                } elseif ($kondisi_item === 'Rusak Berat' || $kondisi_item === 'Hilang') {
+                    $persentase = 1.00;
+                }
+
+                $denda_kondisi_standar = (int)round($harga_buku * $persentase * $jumlah_buku);
+                $denda_kondisi_final = ($kondisi_item !== 'Normal')
+                    ? max($denda_nominal_item, $denda_kondisi_standar)
+                    : $denda_nominal_item;
+
+                if ($kondisi_item !== 'Normal' && $denda_kondisi_final > 0) {
+                    $total_denda += $denda_kondisi_final;
                     if ($keterangan_denda === "Tidak Ada") {
                         $keterangan_denda = "Buku " . $kondisi_item;
                     } else {
                         $keterangan_denda .= " + Buku " . $kondisi_item;
+                    }
+                } elseif ($kondisi_item === 'Normal' && $denda_kondisi_final > 0) {
+                    $total_denda += $denda_kondisi_final;
+                    if ($keterangan_denda === "Tidak Ada") {
+                        $keterangan_denda = "Denda Tambahan";
+                    } else {
+                        $keterangan_denda .= " + Denda Tambahan";
                     }
                 }
 
@@ -1242,8 +829,15 @@ class M_Peminjaman
                     $stmtDenda = $this->koneksi->prepare("
                         INSERT INTO denda (id_detail, jenis_denda, jumlah_hari_terlambat, jumlah_denda, tanggal_denda) VALUES (?, ?, ?, ?, ?)
                     ");
+                    if (!$stmtDenda) {
+                        throw new Exception("Gagal menyiapkan query denda: " . $this->koneksi->error);
+                    }
                     $stmtDenda->bind_param("isiis", $id_detail, $keterangan_denda, $selisih_hari, $total_denda, $tanggal_sekarang);
-                    $stmtDenda->execute();
+                    if (!$stmtDenda->execute()) {
+                        $err = $stmtDenda->error;
+                        $stmtDenda->close();
+                        throw new Exception("Gagal menyimpan data denda: " . $err);
+                    }
                     $stmtDenda->close();
                 }
 
@@ -1263,26 +857,30 @@ class M_Peminjaman
                     $total_denda,
                     $tanggal_sekarang
                 );
-                $stmtHistori->execute();
+                if (!$stmtHistori->execute()) {
+                    throw new Exception("Gagal menyimpan ke histori_transaksi: " . $stmtHistori->error);
+                }
             }
 
             $stmtStok->close();
             $stmtHistori->close();
 
             $stmtUpdDetail = $this->koneksi->prepare("UPDATE detail_peminjaman SET status = 'Dikembalikan', tanggal_dikembalikan = ? WHERE id_peminjaman = ?");
-            $stmtUpdDetail->bind_param("si", $tanggal_sekarang, $id_peminjaman);
-            $stmtUpdDetail->execute();
+            if (!$stmtUpdDetail || !$stmtUpdDetail->bind_param("si", $tanggal_sekarang, $id_peminjaman) || !$stmtUpdDetail->execute()) {
+                throw new Exception("Gagal memperbarui detail peminjaman: " . $this->koneksi->error);
+            }
             $stmtUpdDetail->close();
 
             $stmtUpdPmj = $this->koneksi->prepare("UPDATE peminjaman SET status = 'Dikembalikan' WHERE id_peminjaman = ?");
-            $stmtUpdPmj->bind_param("i", $id_peminjaman);
-            $stmtUpdPmj->execute();
+            if (!$stmtUpdPmj || !$stmtUpdPmj->bind_param("i", $id_peminjaman) || !$stmtUpdPmj->execute()) {
+                throw new Exception("Gagal memperbarui status peminjaman: " . $this->koneksi->error);
+            }
             $stmtUpdPmj->close();
 
             // Simpan semua perubahan
             $this->koneksi->commit();
 
-            return ['status' => true, 'pesan' => 'Pengembalian berhasil. Kondisi dan stok buku telah disesuaikan.'];
+            return ['status' => true, 'pesan' => 'Pengembalian berhasil. Kondisi, denda, dan stok buku telah disesuaikan.'];
         } catch (Exception $e) {
             // Batalkan semua perubahan
             $this->koneksi->rollback();
@@ -1291,10 +889,10 @@ class M_Peminjaman
     }
 
 
-    // 10. AMBIL DATA HISTORI TRANSAKSI (ADMIN) DENGAN JOIN KELAS
+    // 10. AMBIL DATA HISTORI TRANSAKSI (ADMIN) DENGAN JOIN KELAS & KONDISI BUKU
 
     /**
-     * Mengambil histori transaksi beserta kelas siswa.
+     * Mengambil histori transaksi beserta kelas siswa dan kondisi buku.
      *
      * @return array Daftar histori
      */
@@ -1303,10 +901,12 @@ class M_Peminjaman
         $sql = "
             SELECT 
                 h.*, 
-                u.kelas 
+                u.kelas,
+                dp.kondisi_buku
             FROM histori_transaksi h
             LEFT JOIN users u ON h.nis_nip = u.nis_nip
-            ORDER BY h.tanggal_dikembalikan DESC
+            LEFT JOIN detail_peminjaman dp ON h.id_detail = dp.id_detail
+            ORDER BY h.tanggal_dikembalikan DESC, h.id_histori DESC
         ";
 
         $result = $this->koneksi->query($sql);
@@ -1317,6 +917,49 @@ class M_Peminjaman
                 $data[] = $row;
             }
         }
+        return $data;
+    }
+
+
+    // 10B. AMBIL DATA HISTORI BERDASARKAN ID PEMINJAMAN (UNTUK CETAK BUKTI)
+
+    /**
+     * Mengambil rincian histori transaksi berdasarkan id_peminjaman untuk cetak bukti fisik.
+     *
+     * @param int $id_peminjaman ID peminjaman
+     * @return array Daftar item buku dalam satu transaksi
+     */
+    public function getHistoriByIdPeminjaman($id_peminjaman)
+    {
+        $id_peminjaman = (int)$id_peminjaman;
+        $sql = "
+            SELECT 
+                h.*, 
+                u.kelas,
+                dp.jumlah_buku,
+                dp.kondisi_buku
+            FROM histori_transaksi h
+            LEFT JOIN users u ON h.nis_nip = u.nis_nip
+            LEFT JOIN detail_peminjaman dp ON h.id_detail = dp.id_detail
+            WHERE h.id_peminjaman = ?
+            ORDER BY h.id_histori ASC
+        ";
+
+        $stmt = $this->koneksi->prepare($sql);
+        if (!$stmt) {
+            return [];
+        }
+
+        $stmt->bind_param("i", $id_peminjaman);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $data[] = $row;
+        }
+
+        $stmt->close();
         return $data;
     }
 
@@ -1340,3 +983,4 @@ class M_Peminjaman
         return 0;
     }
 }
+?>
